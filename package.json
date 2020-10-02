@@ -1,0 +1,10 @@
+{
+  "scripts": {
+    "start": "parcel index.html",
+    "format": "prettier --write '**/*.{js,html,css,md}'"
+  },
+  "devDependencies": {
+    "parcel": "^1.12.4",
+    "prettier": "^2.1.2"
+  }
+}
