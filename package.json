@@ -1,10 +1,25 @@
 {
   "scripts": {
-    "start": "parcel index.html",
-    "format": "prettier --write '**/*.{js,html,css,md}'"
+    "start": "npm run parcel",
+    "parcel": "parcel index.html",
+    "format": "prettier --write '**/*.{js,ts,html,css,md}' --list-different",
+    "lint": "eslint . --ext .ts",
+    "tsc": "tsc"
   },
   "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^4.8.2",
+    "@typescript-eslint/parser": "^4.8.2",
+    "eslint": "^7.14.0",
+    "prettier": "^2.2.1",
+    "serve": "^11.3.2"
+  },
+  "dependencies": {
     "parcel": "^1.12.4",
-    "prettier": "^2.1.2"
+    "typescript": "^4.1.2"
+  },
+  "eslintConfig": {
+    "extends": [
+      "eslint:recommended"
+    ]
   }
 }
