@@ -65,7 +65,8 @@ export function createEventBuffer(
       return;
     }
 
-    for (const e of getCoalescedEvents(event)) {
+    const coalescedEvents = event.getCoalescedEvents();
+    for (const e of coalescedEvents) {
       events.push({ event: "move", location: { x: e.offsetX, y: e.offsetY } });
     }
     onUpdateCallback();
@@ -83,8 +84,3 @@ export function createEventBuffer(
   };
 }
 
-function getCoalescedEvents(event: PointerEvent): PointerEvent[] {
-  return ((event as unknown) as {
-    getCoalescedEvents(): PointerEvent[];
-  }).getCoalescedEvents();
-}
