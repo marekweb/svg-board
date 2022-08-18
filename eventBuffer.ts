@@ -7,7 +7,8 @@ export type BoardUserEvent =
   | { event: "start"; state: EventBufferState; location: Point }
   | { event: "move"; location: Point }
   | { event: "input"; key: string }
-  | { event: "end" };
+  | { event: "end" }
+  | { event: "text"; location: Point };
 
 type EventBufferState = "drag" | "draw";
 
@@ -37,10 +38,26 @@ export function createEventBuffer(
       return;
     }
 
-    if (event.button === POINTER_BUTTON_LEFT && !event.ctrlKey) {
+    if (
+      event.button === POINTER_BUTTON_LEFT &&
+      !event.ctrlKey &&
+      !event.shiftKey
+    ) {
       transitionToState("draw", event);
-    } else if (event.button === POINTER_BUTTON_MIDDLE || event.ctrlKey) {
+    } else if (
+      event.button === POINTER_BUTTON_MIDDLE ||
+      (event.ctrlKey && !event.shiftKey)
+    ) {
       transitionToState("drag", event);
+    } else if (
+      event.button === POINTER_BUTTON_LEFT &&
+      !event.ctrlKey &&
+      event.shiftKey
+    ) {
+      events.push({
+        event: "text",
+        location: { x: event.offsetX, y: event.offsetY },
+      });
     }
   });
 
@@ -83,4 +100,3 @@ export function createEventBuffer(
     return savedEvents;
   };
 }
-

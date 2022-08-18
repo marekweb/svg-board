@@ -73,6 +73,11 @@ export class InputEventReceiver {
       }
     }
 
+    if (event.event === "text") {
+      const transformedPoint = this.transformPoint(event.location);
+      console.log("Text event received at", transformedPoint);
+    }
+
     if (event.event === "start") {
       if (this.state) {
         throw new Error(
