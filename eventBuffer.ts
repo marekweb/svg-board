@@ -34,6 +34,8 @@ export function createEventBuffer(
   }
 
   target.addEventListener("pointerdown", (event: PointerEvent) => {
+    event.preventDefault();
+    event.stopImmediatePropagation();
     if (state) {
       return;
     }
@@ -61,7 +63,14 @@ export function createEventBuffer(
     }
   });
 
-  target.addEventListener("pointerup", () => {
+  target.addEventListener("wheel", (event) => {
+    console.log("Wheel:", event);
+  });
+
+  target.addEventListener("pointerup", (event) => {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+
     if (state) {
       state = undefined;
       events.push({ event: "end" });
@@ -69,7 +78,10 @@ export function createEventBuffer(
     }
   });
 
-  target.addEventListener("pointerleave", () => {
+  target.addEventListener("pointerleave", (event) => {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+
     if (state) {
       state = undefined;
       events.push({ event: "end" });
@@ -78,6 +90,9 @@ export function createEventBuffer(
   });
 
   target.addEventListener("pointermove", (event: PointerEvent) => {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+
     if (!state) {
       return;
     }
@@ -89,7 +104,7 @@ export function createEventBuffer(
     onUpdateCallback();
   });
 
-  document.body.addEventListener("keyup", (event: KeyboardEvent) => {
+  document.body.addEventListener("keydown", (event: KeyboardEvent) => {
     events.push({ event: "input", key: event.key });
     onUpdateCallback();
   });

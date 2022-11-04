@@ -1,92 +1,245 @@
 import { createSvgElement, setStyle } from "./createSvgElement";
-import { createEventBuffer } from "./eventBuffer";
-import { InputAction, InputEventReceiver } from "./InputEventReceiver";
-import { ActivePathDrawer } from "./PathDrawer";
-import { pens } from "./pen";
-import { add, mul, negate, ORIGIN, Point } from "./point";
+import { PenDefinition } from "./pen";
+import { add, mul, ORIGIN, Point } from "./point";
+import { TextGrid } from "./TextGrid";
 
-interface BoardState {
-  translate: Point;
-  scale: number;
-  pen: number;
+window.addEventListener("load", () => {
+  const elements = createBoardElements2();
+  new Application(elements);
+});
+
+interface BoardElements {
+  svgElement: SVGSVGElement;
+  contentGroupElement: SVGGElement;
+  upperGroupElement: SVGGElement;
+  lowerGroupElement: SVGGElement;
+  textGroupElement: SVGGElement;
 }
 
-window.addEventListener("load", init);
-let requestedAnimationFrame: number | undefined;
+type BufferedEvent =
+  | { type: "keyup"; key: string }
+  | { type: "keydown"; key: string }
+  | { type: "pointerdown"; location: Point }
+  | { type: "pointermove"; location: Point }
+  | { type: "pointerup"; location: Point };
 
-function init() {
-  const state: BoardState = {
-    translate: { x: 0, y: 0 },
-    scale: 1,
-    pen: 0,
-  };
+function createBoardElements2(): BoardElements {
+  const svgElement = createSvgElement("svg");
 
-  const {
+  const contentGroupElement = createSvgElement("g", { id: "content-group" });
+  contentGroupElement.style.transition = "0.1s transform";
+  svgElement.appendChild(contentGroupElement);
+
+  const upperGroupElement = createSvgElement("g", { id: "upper-layer" });
+  contentGroupElement.appendChild(upperGroupElement);
+
+  const lowerGroupElement = createSvgElement("g", { id: "lower-layer" });
+  contentGroupElement.appendChild(lowerGroupElement);
+
+  const textGroupElement = createSvgElement("g", { id: "text-layer" });
+  contentGroupElement.appendChild(textGroupElement);
+
+  return {
     svgElement,
     contentGroupElement,
     upperGroupElement,
     lowerGroupElement,
-  } = createBoardElements();
+    textGroupElement,
+  };
+}
 
-  function updatePan(relativeOffset: Point) {
+class Application {
+  private boardTranslate: Point = { x: 0, y: 0 };
+  private boardScale = 1;
+
+  private elements: BoardElements;
+  private inputState: "none" | "hold-panning" | "text" = "text";
+  private textGrid: TextGrid;
+
+  private eventBuffer: BufferedEvent[] = [];
+  private requestedAnimationFrame: number | undefined;
+
+  private initialCursorX = 0;
+  private initialCursorY = 0;
+
+  constructor(elements: BoardElements) {
+    this.elements = elements;
+    // Init elements in constructor which isn't universally a best idea
+    // but it keeps it simpler than passing all these elements in one by one.
+
+    this.textGrid = new TextGrid(this.elements.textGroupElement);
+    this.initialCursorX = 0;
+    this.initialCursorY = 0;
+
+    setStyle(this.elements.svgElement, {
+      cursor: "crosshair",
+    });
+
+    document.body.appendChild(this.elements.svgElement);
+
+    stretchToViewport(this.elements.svgElement);
+
+    console.log("Init complete");
+    this.attachEventListeners();
+  }
+
+  requestAnimationFrame() {
+    if (this.requestedAnimationFrame === undefined) {
+      this.requestedAnimationFrame = window.requestAnimationFrame(() =>
+        this.processEvents()
+      );
+    }
+  }
+
+  processEvents() {
+    this.requestedAnimationFrame = undefined;
+    if (this.eventBuffer.length === 0) {
+      console.warn("processEvents called needlessly: eventBuffer is empty.");
+      return;
+    }
+    for (const event of this.eventBuffer) {
+      this.processEvent(event);
+    }
+    this.eventBuffer = [];
+  }
+
+  processEvent(event: BufferedEvent) {
+    if (this.inputState === "text" && event.type === "pointerdown") {
+      const { x, y } = TextGrid.findCellFromPoint(
+        event.location.x,
+        event.location.y
+      );
+      this.initialCursorX = x;
+      this.initialCursorY = y;
+
+      this.textGrid.moveCursor(x, y);
+      this.textGrid.showCursor();
+      this.inputState = "text";
+      console.log("Moved cursor");
+    } else if (
+      this.inputState === "text" &&
+      event.type === "keydown" &&
+      event.key === "Escape"
+    ) {
+      this.textGrid.hideCursor();
+    } else if (this.inputState === "text" && event.type == "keydown") {
+      if (event.key.length === 1) {
+        this.textGrid.writeCharacterAtCursor(event.key);
+      } else if (event.key === "ArrowLeft") {
+        this.textGrid.moveCursorRelative(-1);
+      } else if (event.key === "ArrowRight") {
+        this.textGrid.moveCursorRelative(1);
+      } else if (event.key === "ArrowUp") {
+        this.textGrid.moveCursorRelative(0, -1);
+      } else if (event.key === "ArrowDown") {
+        this.textGrid.moveCursorRelative(0, 1);
+      } else if (event.key == "Backspace") {
+        this.textGrid.moveCursorRelative(-1);
+        const cursor = this.textGrid.getCursor();
+        this.textGrid.clearCharacter(cursor.x, cursor.y);
+      } else if (event.key === "Enter") {
+        // Need to know where we began
+        this.textGrid.moveCursor(
+          this.initialCursorX,
+          this.textGrid.getCursor().y + 1
+        );
+      } else if (event.key === "Tab") {
+        // Now we need to prevenet default but it's too late...
+        const columnFromInitialCursor =
+          this.textGrid.getCursor().x - this.initialCursorX;
+        if (columnFromInitialCursor % 2 == 0) {
+          this.textGrid.moveCursorRelative(2);
+        } else {
+          this.textGrid.moveCursorRelative(1);
+        }
+      } else {
+        console.log("Text tool is ignoring key:", event.key);
+      }
+    }
+  }
+
+  attachEventListeners() {
+    console.log("Attaching listeners...");
+    window.addEventListener("keydown", (event: KeyboardEvent) => {
+      //   event.preventDefault();
+      //   event.stopPropagation();
+
+      this.eventBuffer.push({ type: "keydown", key: event.key });
+      console.log("Key is ", JSON.stringify(event.key));
+      this.requestAnimationFrame();
+    });
+    window.addEventListener("keyup", (event: KeyboardEvent) => {
+      //   event.preventDefault();
+      //   event.stopPropagation();
+      this.eventBuffer.push({ type: "keyup", key: event.key });
+      this.requestAnimationFrame();
+    });
+
+    this.elements.svgElement.addEventListener("pointerdown", (event: PointerEvent) => {
+      //   event.preventDefault();
+      //   event.stopPropagation();
+      this.eventBuffer.push({
+        type: "pointerdown",
+        location: { x: event.offsetX, y: event.offsetY },
+      });
+      this.requestAnimationFrame();
+    });
+
+    this.elements.svgElement.addEventListener("pointermove", (event: PointerEvent) => {
+      //   event.preventDefault();
+      //   event.stopPropagation();
+      this.eventBuffer.push({
+        type: "pointermove",
+        location: { x: event.offsetX, y: event.offsetY },
+      });
+      this.requestAnimationFrame();
+    });
+
+    this.elements.svgElement.addEventListener("wheel", (event: WheelEvent) => {
+      console.log(event);
+    });
+  }
+
+  movePan(relativeOffset: Point) {
     const PAN_SPEED = 2;
     relativeOffset = mul(relativeOffset, PAN_SPEED);
-    setTranslate(add(state.translate, relativeOffset));
+    this.setTranslate(add(this.boardTranslate, relativeOffset));
   }
 
-  function setTranslate(translate: Point) {
-    state.translate = translate;
-    eventReceiver.setTranslate(negate(state.translate));
-    applyTransform();
+  setTranslate(translate: Point) {
+    this.boardTranslate = translate;
+    this.applyTransform();
   }
 
-  function setScale(scale: number) {
-    state.scale = scale;
-    eventReceiver.setScale(1 / scale);
-    setTranslate(mul(state.translate, 1 / scale));
-    applyTransform();
+  setScale(scale: number) {
+    this.boardScale = scale;
+    this.setTranslate(mul(this.boardTranslate, 1 / scale));
+    this.applyTransform();
   }
 
-  function applyTransform() {
+  applyTransform() {
     const transformString = generateTransformStringWithUnits(
-      state.scale,
-      state.translate
+      this.boardScale,
+      this.boardTranslate
     );
-    // contentGroupElement.setAttribute("transform", transformString);
-    contentGroupElement.style.transform = transformString;
+    this.elements.contentGroupElement.style.transform = transformString;
   }
 
-  function onAction(action: InputAction) {
-    console.log("!action", action);
-    if (action.action === "pen") {
-      state.pen = action.value;
-      return;
-    }
-
-    if (action.action === "zoom") {
-      setScale(state.scale + action.value);
-      return;
-    }
-
-    if (action.action === "resetZoom") {
-      setScale(1);
-      return;
-    }
-
-    if (action.action === "resetPan") {
-      setTranslate(ORIGIN);
-      return;
-    }
+  resetZoom() {
+    this.setScale(1);
   }
 
-  function createPathElement(): SVGPathElement {
+  resetPan() {
+    this.setTranslate(ORIGIN);
+  }
+
+  createPathElement(penDefinition: PenDefinition): SVGPathElement {
     const element = createSvgElement("path", {
       "stroke-linecap": "round",
       "stroke-linejoin": "round",
       fill: "none",
     });
 
-    const penDefinition = pens[state.pen];
     element.style.stroke = penDefinition.svgAttributes.stroke;
     element.style.strokeWidth = String(
       penDefinition.svgAttributes["stroke-width"]
@@ -94,61 +247,13 @@ function init() {
     element.style.strokeDasharray =
       penDefinition.svgAttributes["stroke-dasharray"] || "";
     if (penDefinition.layer === "upper") {
-      upperGroupElement.appendChild(element);
+      this.elements.upperGroupElement.appendChild(element);
     } else if (penDefinition.layer === "lower") {
-      lowerGroupElement.appendChild(element);
+      this.elements.lowerGroupElement.appendChild(element);
     }
 
     return element;
   }
-
-  stretchToViewport(svgElement);
-  const pathDrawer = new ActivePathDrawer({ createPathElement });
-  const eventReceiver = new InputEventReceiver({
-    pathDrawer,
-    updatePan,
-    onAction,
-  });
-
-  document.body.appendChild(svgElement);
-  const getEvents = createEventBuffer(svgElement, () => {
-    // The reason why `getEvents` is used to grab the events is just to allow
-    // the extra step of waiting for a new frame before we.
-    if (requestedAnimationFrame === undefined) {
-      requestedAnimationFrame = requestAnimationFrame(handleAnimationFrame);
-    }
-  });
-
-  function handleAnimationFrame() {
-    requestedAnimationFrame = undefined;
-    const events = getEvents();
-    if (!events.length) {
-      console.warn(
-        "getEvents returned no events. Could this have been avoided?"
-      );
-    }
-    eventReceiver.processEvents(events);
-  }
-}
-
-function createBoardElements() {
-  const svgElement = createSvgElement("svg");
-  const contentGroupElement = createSvgElement("g", { id: "content-group" });
-  contentGroupElement.style.transition = "0.1s transform";
-  const upperGroupElement = createSvgElement("g", { id: "upper-layer" });
-  const lowerGroupElement = createSvgElement("g", { id: "lower-layer" });
-  contentGroupElement.appendChild(lowerGroupElement);
-  contentGroupElement.appendChild(upperGroupElement);
-  svgElement.appendChild(contentGroupElement);
-  setStyle(svgElement, {
-    cursor: "crosshair",
-  });
-  return {
-    svgElement,
-    contentGroupElement,
-    upperGroupElement,
-    lowerGroupElement,
-  };
 }
 
 function stretchToViewport(target: SVGElement | HTMLElement) {
@@ -167,3 +272,5 @@ function stretchToViewport(target: SVGElement | HTMLElement) {
 function generateTransformStringWithUnits(scale: number, translate: Point) {
   return `translate(${translate.x}px,${translate.y}px) scale(${scale})`;
 }
+
+// If an event got queued, then schedule a requestAnimationFrame for handling.

@@ -1,9 +1,10 @@
 import { BoardUserEvent } from "./eventBuffer";
 import { ActiveDrawingPath, PathDrawer } from "./PathDrawer";
 import { diff, Point, transformPoint } from "./point";
+import { TextGrid } from "./TextGrid";
 
 export interface InputAction {
-  action: "pen" | "zoom" | "resetZoom" | "resetPan";
+  action: "pen" | "zoom" | "resetZoom" | "resetPan" | "enterTextMode";
   value: number;
 }
 
@@ -16,11 +17,13 @@ const keyboardInputMap: Record<string, InputAction> = {
   z: { action: "zoom", value: 0.1 },
   x: { action: "resetZoom", value: 0 },
   q: { action: "resetPan", value: 0 },
+  t: { action: "enterTextMode", value: 0 },
 };
 
 type BoardInputState =
   | { state: "draw"; path: ActiveDrawingPath }
-  | { state: "drag"; origin: Point };
+  | { state: "drag"; origin: Point }
+  | { state: "text"; cursor: Point }; // a Point on the text grid, not on the canvas
 
 export class InputEventReceiver {
   private state: BoardInputState | undefined;
@@ -29,17 +32,21 @@ export class InputEventReceiver {
   private scale = 1;
   private translate: Point = { x: 0, y: 0 };
   private onAction: (action: InputAction) => void;
+  private textGrid: TextGrid;
 
   constructor({
     pathDrawer,
+    textGrid,
     updatePan,
     onAction,
   }: {
     pathDrawer: PathDrawer<ActiveDrawingPath>;
+    textGrid: TextGrid;
     updatePan: (offset: Point) => void;
     onAction: (action: InputAction) => void;
   }) {
     this.pathDrawer = pathDrawer;
+    this.textGrid = textGrid;
     this.updatePan = updatePan;
     this.onAction = onAction;
   }
@@ -67,6 +74,14 @@ export class InputEventReceiver {
 
   private processEvent(event: BoardUserEvent) {
     if (event.event === "input") {
+      if (this.state?.state === "text") {
+        const cursor = this.state.cursor;
+        this.textGrid.writeCharacter(cursor.x, cursor.y, event.key);
+        this.state = {
+          ...this.state,
+          cursor: { x: this.state.cursor.x + 1, y: this.state.cursor.y },
+        };
+      }
       const action = keyboardInputMap[event.key];
       if (action) {
         this.onAction(action);

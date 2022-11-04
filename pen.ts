@@ -1,7 +1,7 @@
 const markerSize = 40;
 const penSize = 6;
 
-type PenDefinition = {
+export type PenDefinition = {
   svgAttributes: {
     stroke: string;
     "stroke-width": number;

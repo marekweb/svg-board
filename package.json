@@ -7,15 +7,15 @@
     "tsc": "tsc"
   },
   "devDependencies": {
-    "@typescript-eslint/eslint-plugin": "^4.8.2",
-    "@typescript-eslint/parser": "^4.8.2",
-    "eslint": "^7.14.0",
-    "prettier": "^2.2.1",
-    "serve": "^11.3.2"
+    "@typescript-eslint/eslint-plugin": "^5.42.0",
+    "@typescript-eslint/parser": "^5.42.0",
+    "eslint": "^8.26.0",
+    "prettier": "^2.7.1",
+    "serve": "^6.5.8"
   },
   "dependencies": {
-    "parcel": "^1.12.4",
-    "typescript": "^4.1.2"
+    "parcel": "^2.7.0",
+    "typescript": "^4.8.4"
   },
   "eslintConfig": {
     "extends": [
