@@ -2,6 +2,7 @@
   "scripts": {
     "start": "npm run parcel",
     "parcel": "parcel index.html",
+    "build": "parcel build index.html",
     "format": "prettier --write '**/*.{js,ts,html,css,md}' --list-different",
     "lint": "eslint . --ext .ts",
     "tsc": "tsc"
@@ -21,5 +22,6 @@
     "extends": [
       "eslint:recommended"
     ]
-  }
+  },
+  "browserslist": "last 2 Chrome versions"
 }
