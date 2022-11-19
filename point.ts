@@ -33,15 +33,22 @@ export function mul(point: Point, factor: number): Point {
   };
 }
 
-export function negate(point: Point): Point {
+export function negative(point: Point): Point {
   return {
     x: -point.x,
     y: -point.y,
   };
 }
 
+export function round(point: Point): Point {
+  return {
+    x: Math.round(point.x),
+    y: Math.round(point.y),
+  };
+}
+
 /**
- * Apply scale and translate to get a canvas point from an input point.
+ * Apply translate and then scale to get a canvas point from an input point.
  */
 export function transformPoint(
   point: Point,

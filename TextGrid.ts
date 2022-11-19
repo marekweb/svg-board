@@ -1,4 +1,5 @@
 import { createSvgElement } from "./createSvgElement";
+import { Point } from "./point";
 
 const fontSize = 20;
 const fontFamily = "Menlo";
@@ -68,8 +69,11 @@ export class TextGrid {
     this.cursorRectElement.style.visibility = "hidden";
   }
 
-  static findCellFromPoint(x: number, y: number): { x: number; y: number } {
-    return { x: Math.floor(x / cellWidth), y: Math.floor(y / cellHeight) };
+  static findCellFromPoint(point: Point): { x: number; y: number } {
+    return {
+      x: Math.floor(point.x / cellWidth),
+      y: Math.floor(point.y / cellHeight),
+    };
   }
 
   createCell(x: number, y: number): SVGTextElement {
@@ -147,4 +151,26 @@ export class TextGrid {
     const newCursor = this.writeText(this.cursorX, this.cursorY, text);
     this.moveCursor(newCursor?.x, newCursor.y);
   }
+
+  export(): ExportedTextGrid {
+    const cells = Array.from(this.cellMap);
+    // TODO:
+    // Get only cells with text.
+    // Sort by coordinates
+    // Collect contiguous spans of text, splitting on X or more spaces between. (for e.gX=3 or a bit larger )
+    throw new Error("Not implemented");
+  }
+
+  import(data: ExportedTextGrid) {
+    // TODO
+    throw new Error("Not implemented");
+  }
 }
+
+type ExportedTextGrid = ExportedTextSpan[];
+
+type ExportedTextSpan = {
+  x: number;
+  y: number;
+  value: string;
+};
