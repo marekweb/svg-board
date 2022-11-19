@@ -1,18 +1,28 @@
+type ElementAttributeName<T extends Element> = keyof {
+  [K in keyof T as T[K] extends Function ? never : K]: string;
+};
+
+type ElementAttributes<T extends Element> = Partial<{
+  [K in ElementAttributeName<T>]: any;
+}>;
+
 /**
  * Create any SVG element;
  */
 export function createSvgElement<T extends keyof SVGElementTagNameMap>(
   name: T,
-  attributes?: Record<string, string>
+  attributes?: ElementAttributes<SVGElementTagNameMap[T]>
 ): SVGElementTagNameMap[T] {
   const element = document.createElementNS("http://www.w3.org/2000/svg", name);
-  setAttributes(element, attributes);
+  if (attributes) {
+    setAttributes<SVGElementTagNameMap[T]>(element, attributes);
+  }
   return element;
 }
 
-function setAttributes<T extends SVGElement>(
+export function setAttributes<T extends SVGElement>(
   element: T,
-  attributes?: Record<string, string>
+  attributes?: ElementAttributes<T> //Record<string, string>
 ): void {
   if (attributes) {
     for (const key in attributes) {
