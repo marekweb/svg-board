@@ -1,0 +1,68 @@
+@font-face {
+  font-family: Iosevka;
+  font-weight: normal;
+  font-style: normal;
+  src: url("/fonts/iosevka-regular.woff2");
+}
+
+path {
+  stroke: hsl(0, 0%, 10%);
+  stroke-width: 3;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+path.pen {
+
+}
+
+path.highlighter {
+  stroke-width: 24;
+}
+
+path.highlighter.red {
+  stroke: hsl(0, 100%, 90%);
+}
+
+path.highlighter.blue {
+  stroke: hsl(240, 100%, 90%);
+}
+
+path.highlighter.green {
+  stroke: hsl(120, 100%, 90%);
+}
+
+rect.box {
+  stroke: blue;
+  stroke-width: 3;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+text.cell {
+  /* font-family: Overpass Mono; */
+  font-family: Iosevka;
+  font-size: 20px;
+}
+
+g.bold > text {
+  font-weight: bold;
+}
+
+g.underlined > text {
+  text-decoration: underline;
+}
+
+rect.text-bg {
+  fill: none;
+}
+
+g.highlight-red > rect.text-bg {
+  fill: palevioletred;
+}
+
+circle.dot-grid-marker {
+  fill: hsl(0, 0%, 50%)
+}

@@ -3,7 +3,7 @@ type ElementAttributeName<T extends Element> = keyof {
 };
 
 type ElementAttributes<T extends Element> = Partial<{
-  [K in ElementAttributeName<T>]: any;
+  [K in ElementAttributeName<T>]: unknown;
 }>;
 
 /**
@@ -11,11 +11,17 @@ type ElementAttributes<T extends Element> = Partial<{
  */
 export function createSvgElement<T extends keyof SVGElementTagNameMap>(
   name: T,
-  attributes?: ElementAttributes<SVGElementTagNameMap[T]>
+  attributes?: ElementAttributes<SVGElementTagNameMap[T]>,
+  classList?: string[] | string
 ): SVGElementTagNameMap[T] {
   const element = document.createElementNS("http://www.w3.org/2000/svg", name);
   if (attributes) {
     setAttributes<SVGElementTagNameMap[T]>(element, attributes);
+  }
+  if (typeof classList === "string") {
+    element.classList.add(classList);
+  } else if (Array.isArray(classList)) {
+    element.classList.add(...classList);
   }
   return element;
 }

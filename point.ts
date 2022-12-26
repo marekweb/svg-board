@@ -57,3 +57,9 @@ export function transformPoint(
 ): Point {
   return mul(add(point, translate), scale);
 }
+
+export function equalsRounded(a: Point, b: Point): boolean {
+  return (
+    Math.round(a.x) === Math.round(b.x) && Math.round(a.y) === Math.round(b.y)
+  );
+}

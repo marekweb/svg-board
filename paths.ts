@@ -3,6 +3,10 @@ import { Point, mid } from "./point";
 export function generateQuadraticMidpointSmoothedPathString(
   points: Point[]
 ): string {
+  // Need at least 3 points
+  if (points.length < 3) {
+    return "";
+  }
   const first = points[0];
   const second = points[1];
   const last = points[points.length - 1];

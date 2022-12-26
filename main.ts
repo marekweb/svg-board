@@ -1,7 +1,19 @@
 import { createSvgElement, setAttributes, setStyle } from "./createSvgElement";
 import { PenDefinition } from "./pen";
-import { add, mul, negative, ORIGIN, Point, transformPoint } from "./point";
+import {
+  add,
+  mul,
+  negative,
+  ORIGIN,
+  Point,
+  round,
+  transformPoint,
+} from "./point";
 import { TextGrid } from "./TextGrid";
+import { PenDrawer } from "./PenDrawer";
+import { ElementDrawer } from "./ElementDrawer";
+import { RectangleDrawer } from "./RectangleDrawer";
+import { pens } from "./pen";
 
 window.addEventListener("load", () => {
   const elements = createBoardElements();
@@ -15,12 +27,13 @@ interface BoardElements {
   lowerGroupElement: SVGGElement;
   textGroupElement: SVGGElement;
   debugTextElement: SVGTextElement;
+  gridElement: SVGGElement;
   debugCircleElement: SVGCircleElement;
 }
 
 type BufferedEvent =
   | { type: "keyup"; key: string }
-  | { type: "keydown"; key: string }
+  | { type: "keydown"; key: string; meta: boolean }
   | { type: "pointerdown"; location: Point }
   | { type: "pointermove"; location: Point; relative: Point }
   | { type: "pointerup"; location: Point }
@@ -30,11 +43,12 @@ type BufferedEvent =
     }
   | { type: "wheel-ctrl"; location: Point; delta: number };
 
+const ENABLE_GRID = true;
+
 function createBoardElements(): BoardElements {
   const svgElement = createSvgElement("svg");
 
   const contentGroupElement = createSvgElement("g", { id: "content-group" });
-  // contentGroupElement.style.transition = "0.1s transform";
   svgElement.appendChild(contentGroupElement);
 
   const upperGroupElement = createSvgElement("g", { id: "upper-layer" });
@@ -45,6 +59,9 @@ function createBoardElements(): BoardElements {
 
   const textGroupElement = createSvgElement("g", { id: "text-layer" });
   contentGroupElement.appendChild(textGroupElement);
+
+  const gridElement = createSvgElement("g");
+  contentGroupElement.appendChild(gridElement);
 
   const debugTextElement = createSvgElement("text", {
     id: "debug-text",
@@ -58,7 +75,8 @@ function createBoardElements(): BoardElements {
     r: 5,
     style: "fill: red",
   });
-  svgElement.appendChild(debugCircleElement);
+  // Debug circle is disabled by commenting out the next line.
+  // svgElement.appendChild(debugCircleElement);
 
   return {
     svgElement,
@@ -67,6 +85,7 @@ function createBoardElements(): BoardElements {
     lowerGroupElement,
     textGroupElement,
     debugTextElement,
+    gridElement,
     debugCircleElement,
   };
 }
@@ -76,23 +95,30 @@ class Application {
   private boardScale = 1;
 
   private elements: BoardElements;
-  private inputState: "none" | "hold-panning" | "text" = "none";
+  private inputState:
+    | "none"
+    | "draw-ready"
+    | "drawing"
+    | "rect-ready"
+    | "rect-drawing"
+    | "hold-panning"
+    | "text"
+    | "text-selecting" = "none";
   private textGrid: TextGrid;
 
   private eventBuffer: BufferedEvent[] = [];
   private requestedAnimationFrame: number | undefined;
 
+  // Used as a left margin, when pressing enter
   private initialCursorX = 0;
-  private initialCursorY = 0;
+
+  private currentPathDrawer: ElementDrawer | undefined;
 
   constructor(elements: BoardElements) {
     this.elements = elements;
-    // Init elements in constructor which isn't universally a best idea
-    // but it keeps it simpler than passing all these elements in one by one.
-
     this.textGrid = new TextGrid(this.elements.textGroupElement);
+    window.importData = (data) => this.textGrid.importData(data)
     this.initialCursorX = 0;
-    this.initialCursorY = 0;
 
     setStyle(this.elements.svgElement, {
       cursor: "crosshair",
@@ -101,6 +127,11 @@ class Application {
     document.body.appendChild(this.elements.svgElement);
 
     stretchToViewport(this.elements.svgElement);
+    const bbox = this.elements.svgElement.getBBox();
+    const boundingClientRect = this.elements.svgElement.getBoundingClientRect();
+    console.log({ bbox, boundingClientRect });
+
+    this.setupDotGrid();
 
     this.updateDebugState();
 
@@ -127,7 +158,7 @@ class Application {
   enterState(state: typeof this.inputState) {
     const oldState = this.inputState;
     this.inputState = state;
-    console.log(`State: ${oldState} -> ${state}`);
+    console.log(`!!!State: ${oldState} -> ${state}`);
     this.updateDebugState();
   }
 
@@ -146,7 +177,7 @@ class Application {
   processEvents() {
     if (this.eventBuffer.length === 0) {
       console.warn(
-        "processEvents called needlessly: eventBuffer is empty. this is not a problem but it indicates"
+        "processEvents called needlessly: eventBuffer is empty. this is not a problem but it indicates a possible bug."
       );
       return;
     }
@@ -157,42 +188,51 @@ class Application {
   }
 
   processEvent(event: BufferedEvent) {
-    if (
-      this.inputState === "none" &&
-      event.type === "keydown" &&
-      event.key === "t"
-    ) {
-      this.enterState("text");
-      return;
-    }
+    if (this.inputState !== "text" && event.type === "keydown") {
+      switch (event.key) {
+        case "t":
+          this.enterState("text");
+          return;
 
-    if (
-      this.inputState === "none" &&
-      event.type === "keydown" &&
-      event.key === "-"
-    ) {
-      this.applyScaleFactor(0.5, this.getScreenCenter());
-      return;
-    }
+        case "d":
+          this.enterState("draw-ready");
+          return;
 
-    if (
-      this.inputState === "none" &&
-      event.type === "keydown" &&
-      event.key === "="
-    ) {
-      this.applyScaleFactor(2, this.getScreenCenter());
-      return;
-    }
+        case "r":
+          this.enterState("rect-ready");
+          return;
 
-    if (
-      this.inputState === "none" &&
-      event.type === "keydown" &&
-      event.key === " "
-    ) {
-      this.enterState("hold-panning");
-      this.elements.svgElement.requestPointerLock();
-      console.log("Hold panning");
-      return;
+        case "-":
+          this.applyScaleFactor(0.5, this.getScreenCenter());
+          return;
+
+        case "=":
+          this.applyScaleFactor(2, this.getScreenCenter());
+          return;
+
+        case " ":
+          this.enterState("hold-panning");
+          this.elements.svgElement.requestPointerLock();
+          console.log("Hold panning");
+          return;
+
+        case "x":
+            // "Export"
+            const spans = this.textGrid.export()
+            const f = JSON.stringify(spans);
+            console.log(f)
+            const blob = new Blob([f], {type: "applcation/json"})
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.download = "spans.json";
+            a.href = url;
+            a.click();
+            return;
+
+ 
+ 
+
+      }
     }
 
     if (this.inputState !== "hold-panning" && event.type === "wheel") {
@@ -226,29 +266,109 @@ class Application {
       return;
     }
 
+    if (this.inputState === "draw-ready" && event.type === "pointerdown") {
+      const boardPoint = this.transformInputPoint(event.location);
+      this.enterState("drawing");
+      const penIndex = 0;
+      const pen = pens[penIndex];
+      if (!pen) {
+        throw new Error(`Pen ${penIndex} not found`);
+      }
+
+      let layerElement;
+      switch (pen.layer) {
+        case "lower":
+          layerElement = this.elements.lowerGroupElement;
+          break;
+        case "upper":
+          layerElement = this.elements.upperGroupElement;
+          break;
+        default:
+          throw new Error(`Unknown layer ${pen.layer}`);
+      }
+
+      this.currentPathDrawer = new PenDrawer(
+        layerElement,
+        pen.classList
+      );
+      this.currentPathDrawer.startPath(boardPoint);
+      return;
+    }
+
+    if (this.inputState === "drawing" && event.type === "pointermove") {
+      const boardPoint = this.transformInputPoint(event.location);
+      this.currentPathDrawer?.updatePath(boardPoint);
+      return;
+    }
+
+    if (this.inputState === "drawing" && event.type === "pointerup") {
+      this.currentPathDrawer?.endPath();
+      this.enterState("draw-ready");
+      return;
+    }
+
+    if (this.inputState === "rect-ready" && event.type === "pointerdown") {
+      const boardPoint = this.transformInputPoint(event.location);
+      this.enterState("rect-drawing");
+      this.currentPathDrawer = new RectangleDrawer(
+        this.elements.upperGroupElement
+      );
+      this.currentPathDrawer.startPath(boardPoint);
+      return;
+    }
+
+    if (this.inputState === "rect-drawing" && event.type === "pointermove") {
+      const boardPoint = this.transformInputPoint(event.location);
+      this.currentPathDrawer?.updatePath(boardPoint);
+      return;
+    }
+
+    if (this.inputState === "rect-drawing" && event.type === "pointerup") {
+      this.currentPathDrawer?.endPath();
+      this.enterState("rect-ready");
+      return;
+    }
+
     if (this.inputState === "text" && event.type === "pointerdown") {
       this.updateDebugCircle(event.location);
 
       const boardPoint = this.transformInputPoint(event.location);
       const { x, y } = TextGrid.findCellFromPoint(boardPoint);
       this.initialCursorX = x;
-      this.initialCursorY = y;
+      // this.initialCursorY = y;
 
       this.textGrid.moveCursor(x, y);
       this.textGrid.showCursor();
-      this.inputState = "text";
+      this.enterState("text-selecting");
       this.updateDebugState();
       console.log("Moved cursor");
     } else if (
-      this.inputState === "text" &&
-      event.type === "keydown" &&
-      event.key === "Escape"
+      this.inputState === "text-selecting" &&
+      event.type === "pointermove"
     ) {
-      this.textGrid.hideCursor();
+      const boardPoint = this.transformInputPoint(event.location);
+      const newCursorEnd = TextGrid.findCellFromPoint(boardPoint);
+      this.textGrid.setSelectionEnd(newCursorEnd);
+    } else if (
+      this.inputState === "text-selecting" &&
+      event.type === "pointerup"
+    ) {
+      this.enterState("text");
+    } else if (event.type === "keydown" && event.key === "Escape") {
+      if (this.inputState === "text") {
+        this.textGrid.hideCursor();
+      }
       this.enterState("none");
     } else if (this.inputState === "text" && event.type == "keydown") {
-      if (event.key.length === 1) {
+      if (event.key.length === 1 && !event.meta) {
         this.textGrid.writeCharacterAtCursor(event.key);
+      } else if (event.key === "b" && event.meta) {
+        // toggle bold under this character (or this selection)
+        this.textGrid.toggleCellClassAtSelection("bold");
+      } else if (event.key === "u" && event.meta) {
+        this.textGrid.toggleCellClassAtSelection("underlined");
+      } else if (event.key === "z" && event.meta) {
+        this.textGrid.toggleCellClassAtSelection("highlight-red");
       } else if (event.key === "ArrowLeft") {
         this.textGrid.moveCursorRelative(-1);
       } else if (event.key === "ArrowRight") {
@@ -285,21 +405,32 @@ class Application {
   attachEventListeners() {
     console.log("Attaching listeners...");
 
-    this.elements.svgElement.addEventListener("paste", (event) => {
+    // this.elements.svgElement.addEventListener("paste", (event) => {
+    document.addEventListener("paste", (event) => {
       event.preventDefault();
+      event.stopImmediatePropagation();
       const text = event.clipboardData?.getData("text");
-      console.log("Text", text);
+      console.log("Pasting text", text);
       if (text && this.inputState === "text") {
         this.textGrid.writeTextAtCursor(text);
       }
     });
+
+    const TIMER_INTERVAL = 4000;
+    console.log(
+      `Recurring timer is running at an interval of ${TIMER_INTERVAL}ms`
+    );
+    window.setInterval(() => {
+      console.debug("Pruning cells");
+      this.textGrid.pruneCells();
+    }, TIMER_INTERVAL);
 
     window.addEventListener("keydown", (event: KeyboardEvent) => {
       //   event.preventDefault();
       //   event.stopPropagation();
 
       if (event.repeat) {
-        // Ignore all repeated keys (they aren't real keypresses)
+        // Ignore all repeated keys (they aren't real keydowns)
         return;
       }
 
@@ -308,10 +439,17 @@ class Application {
         event.preventDefault();
       }
 
-      this.eventBuffer.push({ type: "keydown", key: event.key });
+      console.log("Key object", event);
+
+      this.eventBuffer.push({
+        type: "keydown",
+        key: event.key,
+        meta: event.metaKey,
+      });
       console.log("Key is ", JSON.stringify(event.key));
       this.requestProcessEvents();
     });
+
     window.addEventListener("keyup", (event: KeyboardEvent) => {
       //   event.preventDefault();
       //   event.stopPropagation();
@@ -328,8 +466,8 @@ class Application {
     this.elements.svgElement.addEventListener(
       "pointerdown",
       (event: PointerEvent) => {
-        //   event.preventDefault();
-        //   event.stopPropagation();
+        event.preventDefault();
+        event.stopPropagation();
         this.eventBuffer.push({
           type: "pointerdown",
           location: { x: event.offsetX, y: event.offsetY },
@@ -341,9 +479,14 @@ class Application {
     this.elements.svgElement.addEventListener(
       "pointermove",
       (event: PointerEvent) => {
-        // event.preventDefault();
-        // event.stopPropagation();
-        if (this.inputState !== "hold-panning") {
+        event.preventDefault();
+        event.stopPropagation();
+        if (
+          this.inputState !== "hold-panning" &&
+          this.inputState !== "drawing" &&
+          this.inputState !== "rect-drawing" &&
+          this.inputState !== "text-selecting"
+        ) {
           return;
         }
         const coalescedEvents = event.getCoalescedEvents();
@@ -353,6 +496,19 @@ class Application {
             location: { x: event.offsetX, y: event.offsetY },
             relative: { x: event.movementX, y: event.movementY },
           });
+        });
+        this.requestProcessEvents();
+      }
+    );
+
+    this.elements.svgElement.addEventListener(
+      "pointerup",
+      (event: PointerEvent) => {
+        //   event.preventDefault();
+        //   event.stopPropagation();
+        this.eventBuffer.push({
+          type: "pointerup",
+          location: { x: event.offsetX, y: event.offsetY },
         });
         this.requestProcessEvents();
       }
@@ -419,15 +575,44 @@ class Application {
       this.boardTranslate
     );
     this.elements.contentGroupElement.style.transform = transformString;
+
+    // const gridTransformString = generateTransformStringWithUnitsForGrid(
+    //   this.boardScale,
+    //   this.boardTranslate
+    // );
+    // this.elements.gridElement.style.transform = gridTransformString;
+
     this.updateDebugState();
+  }
+
+  setupDotGrid() {
+    if (!ENABLE_GRID) {
+      return;
+    }
+    const spacingY = 22 * 4;
+    const spacingX = 22 * 4;
+
+    const { width, height } = this.elements.svgElement.getBoundingClientRect();
+    const markersXCount = Math.ceil(width / spacingX);
+    const markersYCount = Math.ceil(height / spacingY);
+
+    this.elements.gridElement.innerHTML = "";
+    for (let y = 0; y < markersYCount; y++) {
+      for (let x = 0; x < markersXCount; x++) {
+        const marker = createSvgElement("circle", {
+          cx: x * spacingX,
+          cy: y * spacingY,
+          r: 1,
+        }, ['dot-grid-marker']);
+        this.elements.gridElement.appendChild(marker);
+      }
+    }
   }
 
   /** Transform a pointer input location, with board scale and translate, to real board coordinates. */
   transformInputPoint(point: Point): Point {
-    return transformPoint(
-      point,
-      1 / this.boardScale,
-      negative(this.boardTranslate)
+    return /*round*/(
+      transformPoint(point, 1 / this.boardScale, negative(this.boardTranslate))
     );
   }
 
@@ -444,18 +629,10 @@ class Application {
   }
 
   createPathElement(penDefinition: PenDefinition): SVGPathElement {
-    const element = createSvgElement("path", {
-      "stroke-linecap": "round",
-      "stroke-linejoin": "round",
-      fill: "none",
-    });
+    const element = createSvgElement("path");
 
-    element.style.stroke = penDefinition.svgAttributes.stroke;
-    element.style.strokeWidth = String(
-      penDefinition.svgAttributes["stroke-width"]
-    );
-    element.style.strokeDasharray =
-      penDefinition.svgAttributes["stroke-dasharray"] || "";
+    element.classList.remove(...element.classList);
+    element.classList.add(penDefinition.className)
     if (penDefinition.layer === "upper") {
       this.elements.upperGroupElement.appendChild(element);
     } else if (penDefinition.layer === "lower") {
@@ -487,4 +664,13 @@ function stretchToViewport(target: SVGElement | HTMLElement) {
 
 function generateTransformStringWithUnits(scale: number, translate: Point) {
   return `translate(${translate.x}px,${translate.y}px) scale(${scale})`;
+}
+
+function generateTransformStringWithUnitsForGrid(
+  scale: number,
+  translate: Point
+) {
+  const x = translate.x % 10;
+  const y = translate.y % 20;
+  return `translate(${x}px,${y}px) scale(${scale})`;
 }

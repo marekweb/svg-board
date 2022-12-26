@@ -1,5 +1,5 @@
 import { BoardUserEvent } from "./eventBuffer";
-import { ActiveDrawingPath, PathDrawer } from "./PathDrawer";
+import { ActiveDrawingPath, ElementDrawer } from "./PenDrawer";
 import { diff, Point, transformPoint } from "./point";
 import { TextGrid } from "./TextGrid";
 
@@ -27,7 +27,7 @@ type BoardInputState =
 
 export class InputEventReceiver {
   private state: BoardInputState | undefined;
-  private pathDrawer: PathDrawer<ActiveDrawingPath>;
+  private pathDrawer: ElementDrawer<ActiveDrawingPath>;
   private updatePan: (offset: Point) => void;
   private scale = 1;
   private translate: Point = { x: 0, y: 0 };
@@ -40,7 +40,7 @@ export class InputEventReceiver {
     updatePan,
     onAction,
   }: {
-    pathDrawer: PathDrawer<ActiveDrawingPath>;
+    pathDrawer: ElementDrawer<ActiveDrawingPath>;
     textGrid: TextGrid;
     updatePan: (offset: Point) => void;
     onAction: (action: InputAction) => void;
