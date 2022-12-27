@@ -230,7 +230,7 @@ export class TextGrid {
   }
 
   writeCharacter(x: number, y: number, char: string) {
-    let cell = this.getOrCreateCell(x, y);
+    const cell = this.getOrCreateCell(x, y);
     cell.textElement.innerHTML = char;
   }
 

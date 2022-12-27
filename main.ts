@@ -6,7 +6,6 @@ import {
   negative,
   ORIGIN,
   Point,
-  round,
   transformPoint,
 } from "./point";
 import { TextGrid } from "./TextGrid";
@@ -216,7 +215,7 @@ class Application {
           console.log("Hold panning");
           return;
 
-        case "x":
+        case "x": {
             // "Export"
             const spans = this.textGrid.export()
             const f = JSON.stringify(spans);
@@ -228,6 +227,7 @@ class Application {
             a.href = url;
             a.click();
             return;
+        }
 
  
  
