@@ -2,3 +2,6 @@ node_modules/
 .cache/
 .parcel-cache
 dist/
+
+# Ignore fonts because they are downloaded from a CDN during postinstall
+fonts/
