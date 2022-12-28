@@ -275,26 +275,26 @@ export class TextGrid {
     if (!cells.length) {
       return "";
     }
-    cells.sort((a, b) => {
-      if (a.location.y !== b.location.y) {
-        return a.location.y - b.location.y;
-      }
-      return a.location.x - b.location.x;
-    });
+
     let text = "";
-    let currentY = cells[0].location.y;
+    let currentY = this.cursorStart.y;
+    let lastX = this.cursorStart.x - 1;
     let leadingSpaces = 0;
     for (const cell of cells) {
       if (cell.location.y !== currentY) {
-        text += "\n";
+        const lines = cell.location.y - currentY;
         currentY = cell.location.y;
         leadingSpaces = cell.location.x - this.cursorStart.x;
+        text += "\n".repeat(lines) + " ".repeat(leadingSpaces);
+        lastX = this.cursorStart.x - 1;
       }
-      text += " ".repeat(leadingSpaces) + cell.textElement.innerHTML;
+      // Add spaces since last cell
+      const spaces = cell.location.x - lastX - 1;
+      text += " ".repeat(spaces) + cell.textElement.innerHTML;
+      lastX = cell.location.x;
     }
     return text;
   }  
-  
 
   export(): ExportedTextGrid {
     const cells = Array.from(this.cellMap).map((entry) => {
