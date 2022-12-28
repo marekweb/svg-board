@@ -128,7 +128,6 @@ class Application {
     stretchToViewport(this.elements.svgElement);
     const bbox = this.elements.svgElement.getBBox();
     const boundingClientRect = this.elements.svgElement.getBoundingClientRect();
-    console.log({ bbox, boundingClientRect });
 
     this.setupDotGrid();
 
@@ -228,10 +227,6 @@ class Application {
             a.click();
             return;
         }
-
- 
- 
-
       }
     }
 
@@ -405,7 +400,8 @@ class Application {
   attachEventListeners() {
     console.log("Attaching listeners...");
 
-    // this.elements.svgElement.addEventListener("paste", (event) => {
+    // Listen to paste events and write text to the grid
+    // Nonbuffered event.
     document.addEventListener("paste", (event) => {
       event.preventDefault();
       event.stopImmediatePropagation();
@@ -416,14 +412,22 @@ class Application {
       }
     });
 
-    const TIMER_INTERVAL = 4000;
-    console.log(
-      `Recurring timer is running at an interval of ${TIMER_INTERVAL}ms`
-    );
+    // Listen to copy events and read text to the grid into the clipboard
+    // Non-buffered event.
+    document.addEventListener("copy", (event) => {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      const text = this.textGrid.getSelectedText();
+      console.log("Copying text", text);
+      event.clipboardData?.setData("text/plain", text);
+    });
+
+    // Setup cleanup interval
+    const CLEANUP_TIMER_INTERVAL = 4000;
     window.setInterval(() => {
       console.debug("Pruning cells");
       this.textGrid.pruneCells();
-    }, TIMER_INTERVAL);
+    }, CLEANUP_TIMER_INTERVAL);
 
     window.addEventListener("keydown", (event: KeyboardEvent) => {
       //   event.preventDefault();
@@ -658,7 +662,6 @@ function stretchToViewport(target: SVGElement | HTMLElement) {
     bottom: "0",
     height: "100%",
     width: "100%",
-    backgroundColor: "white",
   });
 }
 

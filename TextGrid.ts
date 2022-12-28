@@ -15,6 +15,7 @@ interface GridCell {
   groupElement: SVGGElement;
   textElement: SVGTextElement;
   backgroundElement: SVGRectElement;
+  location: Point;
 }
 type CellMap = Map<string, GridCell>;
 
@@ -147,7 +148,7 @@ export class TextGrid {
     groupElement.appendChild(textElement);
     this.parentSvgElemnent.appendChild(groupElement);
 
-    const cell = { groupElement, textElement, backgroundElement };
+    const cell = { groupElement, textElement, backgroundElement, location: { x, y } };
 
     this.cellMap.set(key, cell);
     return cell;
@@ -268,6 +269,32 @@ export class TextGrid {
     );
     this.moveCursor(newCursor?.x, newCursor.y);
   }
+
+  getSelectedText(): string {
+    const cells = this.getCellsInSelection();
+    if (!cells.length) {
+      return "";
+    }
+    cells.sort((a, b) => {
+      if (a.location.y !== b.location.y) {
+        return a.location.y - b.location.y;
+      }
+      return a.location.x - b.location.x;
+    });
+    let text = "";
+    let currentY = cells[0].location.y;
+    let leadingSpaces = 0;
+    for (const cell of cells) {
+      if (cell.location.y !== currentY) {
+        text += "\n";
+        currentY = cell.location.y;
+        leadingSpaces = cell.location.x - this.cursorStart.x;
+      }
+      text += " ".repeat(leadingSpaces) + cell.textElement.innerHTML;
+    }
+    return text;
+  }  
+  
 
   export(): ExportedTextGrid {
     const cells = Array.from(this.cellMap).map((entry) => {
