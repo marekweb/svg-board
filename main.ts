@@ -1,13 +1,6 @@
 import { createSvgElement, setAttributes, setStyle } from "./createSvgElement";
 import { PenDefinition } from "./pen";
-import {
-  add,
-  mul,
-  negative,
-  ORIGIN,
-  Point,
-  transformPoint,
-} from "./point";
+import { add, mul, negative, ORIGIN, Point, transformPoint } from "./point";
 import { TextGrid } from "./TextGrid";
 import { PenDrawer } from "./PenDrawer";
 import { ElementDrawer } from "./ElementDrawer";
@@ -110,13 +103,14 @@ class Application {
 
   // Used as a left margin, when pressing enter
   private initialCursorX = 0;
+  private penIndex = 0;
 
   private currentPathDrawer: ElementDrawer | undefined;
 
   constructor(elements: BoardElements) {
     this.elements = elements;
     this.textGrid = new TextGrid(this.elements.textGroupElement);
-    window.importData = (data) => this.textGrid.importData(data)
+    window.importData = (data) => this.textGrid.importData(data);
     this.initialCursorX = 0;
 
     setStyle(this.elements.svgElement, {
@@ -142,7 +136,7 @@ class Application {
 
   updateDebugState() {
     this.updateDebugText(
-      `${this.inputState}  T:${this.boardTranslate.x},${this.boardTranslate.y}  S:${this.boardScale}`
+      `${this.inputState}  T:${this.boardTranslate.x},${this.boardTranslate.y}  S=${this.boardScale}  pen=${this.penIndex}`
     );
   }
 
@@ -186,6 +180,28 @@ class Application {
   }
 
   processEvent(event: BufferedEvent) {
+    if (this.inputState === "draw-ready" && event.type === "keydown") {
+      switch (event.key) {
+        case "1":
+          this.penIndex = 0;
+          return;
+
+        case "2":
+          this.penIndex = 1;
+          return;
+
+        case "3":
+          this.penIndex = 2;
+          return;
+
+        case "4":
+          this.penIndex = 3;
+          return;
+      }
+
+      this.updateDebugState();
+    }
+
     if (this.inputState !== "text" && event.type === "keydown") {
       switch (event.key) {
         case "t":
@@ -215,17 +231,17 @@ class Application {
           return;
 
         case "x": {
-            // "Export"
-            const spans = this.textGrid.export()
-            const f = JSON.stringify(spans);
-            console.log(f)
-            const blob = new Blob([f], {type: "applcation/json"})
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.download = "spans.json";
-            a.href = url;
-            a.click();
-            return;
+          // "Export"
+          const spans = this.textGrid.export();
+          const f = JSON.stringify(spans);
+          console.log(f);
+          const blob = new Blob([f], { type: "applcation/json" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.download = "spans.json";
+          a.href = url;
+          a.click();
+          return;
         }
       }
     }
@@ -264,7 +280,7 @@ class Application {
     if (this.inputState === "draw-ready" && event.type === "pointerdown") {
       const boardPoint = this.transformInputPoint(event.location);
       this.enterState("drawing");
-      const penIndex = 0;
+      const penIndex = this.penIndex;
       const pen = pens[penIndex];
       if (!pen) {
         throw new Error(`Pen ${penIndex} not found`);
@@ -282,10 +298,8 @@ class Application {
           throw new Error(`Unknown layer ${pen.layer}`);
       }
 
-      this.currentPathDrawer = new PenDrawer(
-        layerElement,
-        pen.classList
-      );
+      console.log("Started a new draw path");
+      this.currentPathDrawer = new PenDrawer(layerElement, pen.classList);
       this.currentPathDrawer.startPath(boardPoint);
       return;
     }
@@ -603,11 +617,15 @@ class Application {
     this.elements.gridElement.innerHTML = "";
     for (let y = 0; y < markersYCount; y++) {
       for (let x = 0; x < markersXCount; x++) {
-        const marker = createSvgElement("circle", {
-          cx: x * spacingX,
-          cy: y * spacingY,
-          r: 1,
-        }, ['dot-grid-marker']);
+        const marker = createSvgElement(
+          "circle",
+          {
+            cx: x * spacingX,
+            cy: y * spacingY,
+            r: 1,
+          },
+          ["dot-grid-marker"]
+        );
         this.elements.gridElement.appendChild(marker);
       }
     }
@@ -615,8 +633,10 @@ class Application {
 
   /** Transform a pointer input location, with board scale and translate, to real board coordinates. */
   transformInputPoint(point: Point): Point {
-    return /*round*/(
-      transformPoint(point, 1 / this.boardScale, negative(this.boardTranslate))
+    return transformPoint(
+      point,
+      1 / this.boardScale,
+      negative(this.boardTranslate)
     );
   }
 
@@ -636,7 +656,7 @@ class Application {
     const element = createSvgElement("path");
 
     element.classList.remove(...element.classList);
-    element.classList.add(penDefinition.className)
+    element.classList.add(penDefinition.className);
     if (penDefinition.layer === "upper") {
       this.elements.upperGroupElement.appendChild(element);
     } else if (penDefinition.layer === "lower") {

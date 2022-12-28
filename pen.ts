@@ -10,6 +10,14 @@ export const pens: PenDefinition[] = [
   },
   {
     classList: ["highlighter", "blue"],
-    layer: "upper",
+    layer: "lower",
+  },
+  {
+    classList: ["highlighter", "red"],
+    layer: "lower",
+  },
+  {
+    classList: ["highlighter", "green"],
+    layer: "lower",
   },
 ];

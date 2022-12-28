@@ -148,7 +148,12 @@ export class TextGrid {
     groupElement.appendChild(textElement);
     this.parentSvgElemnent.appendChild(groupElement);
 
-    const cell = { groupElement, textElement, backgroundElement, location: { x, y } };
+    const cell = {
+      groupElement,
+      textElement,
+      backgroundElement,
+      location: { x, y },
+    };
 
     this.cellMap.set(key, cell);
     return cell;
@@ -294,7 +299,7 @@ export class TextGrid {
       lastX = cell.location.x;
     }
     return text;
-  }  
+  }
 
   export(): ExportedTextGrid {
     const cells = Array.from(this.cellMap).map((entry) => {
@@ -330,11 +335,15 @@ export class TextGrid {
         text: sortedCells[0].text,
         classList: sortedCells[0].classList,
       };
-      spans.push(span)
+      spans.push(span);
 
-      for (let cell of sortedCells.slice(1)) {
+      for (const cell of sortedCells.slice(1)) {
         const distance = cell.x - span.x - span.text.length;
-        console.log("Distance", {distance, text: cell.text, spanText: span.text});
+        console.log("Distance", {
+          distance,
+          text: cell.text,
+          spanText: span.text,
+        });
         if (distance < 3) {
           // todo also check the class list
           span.text += " ".repeat(distance) + cell.text;
@@ -347,7 +356,6 @@ export class TextGrid {
           };
           spans.push(span);
         }
-
       }
     });
 
@@ -369,12 +377,12 @@ export class TextGrid {
 
   importData(data: ExportedTextGrid) {
     // Origin is used if we are importing to a location, not to the origin.
-    const origin = ORIGIN
+    const origin = ORIGIN;
     // TODO: clear everything or don't?
 
     for (const entry of data) {
-      this.writeText(origin.x + entry.x , origin.y + entry.y, entry.text);
-      
+      this.writeText(origin.x + entry.x, origin.y + entry.y, entry.text);
+
       // TODO: set class list
     }
   }
@@ -403,19 +411,4 @@ function isCellEmpty(cell: GridCell | undefined): boolean {
   }
 
   return false;
-}
-
-function arraysEqual(a: string[], b: string[]): boolean {
-  // Assuming that arrays are already sorted.
-  if (a.length !== b.length) {
-    return false;
-  }
-  for (let i = 0; i < a.length; i++) {
-    if (a[i] !== b[i]) {
-      return false;
-    }
-  // 
-  }
-  return true;
-  
 }

@@ -14,7 +14,6 @@ path {
 }
 
 path.pen {
-
 }
 
 path.highlighter {
@@ -64,5 +63,5 @@ g.highlight-red > rect.text-bg {
 }
 
 circle.dot-grid-marker {
-  fill: hsl(0, 0%, 50%)
+  fill: hsl(0, 0%, 50%);
 }

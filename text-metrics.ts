@@ -15,10 +15,9 @@ export function getCharacterMetrics(
   return new Promise((resolve) => {
     window.requestAnimationFrame(() => {
       const { width, height } = text.getBBox();
-      console.log('Metrics', width, height);
+      console.log("Metrics", width, height);
       resolve({ width, height });
       text.remove();
     });
-  }); 
-
+  });
 }
