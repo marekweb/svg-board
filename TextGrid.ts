@@ -11,6 +11,12 @@ const baselineFromBottom = fontSize * baselineFromBottomAsFractionOfFontSize;
 export const cellWidth = 11; //fontSize * courierWidthMetric;
 export const cellHeight = 22; //fontSize * courierHeightMetric;
 
+const highlightClasses = [
+  "highlight-red",
+  "highlight-green",
+  "highlight-blue",
+] as const;
+
 interface GridCell {
   groupElement: SVGGElement;
   textElement: SVGTextElement;
@@ -34,7 +40,7 @@ export class TextGrid {
     this.cursorRectElement.setAttribute("width", String(cellWidth));
     this.cursorRectElement.setAttribute("height", String(cellHeight));
     this.cursorRectElement.style.verticalAlign = "bottom";
-    this.cursorRectElement.style.fill = "pink";
+    this.cursorRectElement.classList.add("selection-cursor");
     this.applyCursor();
     this.parentSvgElemnent.appendChild(this.cursorRectElement);
 
@@ -58,14 +64,32 @@ export class TextGrid {
   setSelectionEnd(point: Point) {
     console.log("Cursor end set to", this.cursorEnd);
 
-    // Implement maximum selection size
-    const maxCursorEndX = this.cursorStart.x + 10;
+    // Implement maximum selection size This doesn't currently work and it
+    // especially doesn't work when the cursor is moved to the left or up.
+    const maxCursorEndX = this.cursorStart.x + 30;
     const newCursorEndX = Math.min(point.x, maxCursorEndX);
     const maxCursorEndY = this.cursorStart.y + 30;
     const newCursorEndY = Math.min(point.y, maxCursorEndY);
 
     this.cursorEnd = { x: newCursorEndX, y: newCursorEndY };
+
     this.applyCursor();
+  }
+
+  /**
+   * Make sure that cursorStart is the top left and cursorEnd is the bottom
+   * right (because the selection may be created by dragging backwards, i.e.
+   * upwards or leftwards).
+   *
+   * This doesn't need to be the case during `text-selecting` mode, because at
+   * that point the cursorStart needs to keep track of where the dragging was
+   * started and cursorEnd is where the pointer is currently dragging.
+   */
+  normalizeCursorSelection() {
+    if (!this.cursorEnd) return;
+    const rect = convertPointsToRect(this.cursorStart, this.cursorEnd);
+    this.cursorStart = { x: rect.x, y: rect.y };
+    this.cursorEnd = { x: rect.x + rect.w, y: rect.y + rect.h };
   }
 
   moveCursorRelative(x: number, y = 0) {
@@ -74,6 +98,9 @@ export class TextGrid {
     this.applyCursor();
   }
 
+  /**
+   * Update the cursor rect based on cursorStart and cursorEnd.
+   */
   applyCursor() {
     console.log("Applying cursor location");
     const cursorEnd = this.cursorEnd ?? this.cursorStart;
@@ -173,6 +200,7 @@ export class TextGrid {
   }
 
   getCellsInSelection(includeEmptyCells = false): GridCell[] {
+    // Handle the case when a single cell is selected
     if (!this.cursorEnd) {
       console.log("Got only one cell from selection");
       const cell = this.getCell(this.cursorStart.x, this.cursorStart.y);
@@ -188,12 +216,10 @@ export class TextGrid {
         const cell = includeEmptyCells
           ? this.getOrCreateCell(x, y)
           : this.getCell(x, y);
-        if (!cell) {
+        if (!cell || (isCellEmpty(cell) && !includeEmptyCells)) {
           continue;
         }
-        if (!includeEmptyCells || !isCellEmpty(cell)) {
-          cells.push(cell);
-        }
+        cells.push(cell);
       }
     }
     return cells;
@@ -220,12 +246,27 @@ export class TextGrid {
     }
   }
 
-  setHighlightOnSelection() {
+  removeClassesOnSelection(classNames: readonly string[]) {
     const cells = this.getCellsInSelection();
     for (const cell of cells) {
-      cell.textElement.classList.toggle("bold");
-      cell.textElement.classList.toggle("underlined");
+      cell.groupElement.classList.remove(...classNames);
     }
+  }
+
+  addClassesOnSelection(className: typeof highlightClasses[number]) {
+    const cells = this.getCellsInSelection(true);
+    for (const cell of cells) {
+      cell.groupElement.classList.add(className);
+    }
+  }
+
+  setHighlightClassOnSelection(className: typeof highlightClasses[number]) {
+    this.clearHighlightOnSelection();
+    this.addClassesOnSelection(className);
+  }
+
+  clearHighlightOnSelection() {
+    this.removeClassesOnSelection(highlightClasses);
   }
 
   writeCharacterAtCursor(char: string) {

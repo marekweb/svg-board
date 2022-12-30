@@ -120,13 +120,8 @@ class Application {
     document.body.appendChild(this.elements.svgElement);
 
     stretchToViewport(this.elements.svgElement);
-    const bbox = this.elements.svgElement.getBBox();
-    const boundingClientRect = this.elements.svgElement.getBoundingClientRect();
-
     this.setupDotGrid();
-
     this.updateDebugState();
-
     this.attachEventListeners();
   }
 
@@ -362,6 +357,7 @@ class Application {
       this.inputState === "text-selecting" &&
       event.type === "pointerup"
     ) {
+      this.textGrid.normalizeCursorSelection();
       this.enterState("text");
     } else if (event.type === "keydown" && event.key === "Escape") {
       if (this.inputState === "text") {
@@ -371,6 +367,16 @@ class Application {
     } else if (this.inputState === "text" && event.type == "keydown") {
       if (event.key.length === 1 && !event.meta) {
         this.textGrid.writeCharacterAtCursor(event.key);
+
+        // Highlighting on selection
+      } else if (event.key === "i" && event.meta) {
+        this.textGrid.clearHighlightOnSelection();
+      } else if (event.key === "a" && event.meta) {
+        this.textGrid.setHighlightClassOnSelection("highlight-red");
+      } else if (event.key === "p" && event.meta) {
+        this.textGrid.setHighlightClassOnSelection("highlight-blue");
+      } else if (event.key === "d" && event.meta) {
+        this.textGrid.setHighlightClassOnSelection("highlight-green");
       } else if (event.key === "b" && event.meta) {
         // toggle bold under this character (or this selection)
         this.textGrid.toggleCellClassAtSelection("bold");
@@ -656,7 +662,7 @@ class Application {
     const element = createSvgElement("path");
 
     element.classList.remove(...element.classList);
-    element.classList.add(penDefinition.className);
+    element.classList.add(...penDefinition.classList);
     if (penDefinition.layer === "upper") {
       this.elements.upperGroupElement.appendChild(element);
     } else if (penDefinition.layer === "lower") {

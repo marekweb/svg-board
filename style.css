@@ -1,3 +1,10 @@
+:root {
+  --light-red: hsl(0, 100%, 90%);
+  --light-blue: hsl(240, 100%, 90%);
+  --light-green: hsl(120, 100%, 90%);
+  --light-yellow: hsl(60, 100%, 90%);
+}
+
 @font-face {
   font-family: Iosevka;
   font-weight: normal;
@@ -21,15 +28,15 @@ path.highlighter {
 }
 
 path.highlighter.red {
-  stroke: hsl(0, 100%, 90%);
+  stroke: var(--light-red);
 }
 
 path.highlighter.blue {
-  stroke: hsl(240, 100%, 90%);
+  stroke: var(--light-blue);
 }
 
 path.highlighter.green {
-  stroke: hsl(120, 100%, 90%);
+  stroke: var(--light-green);
 }
 
 rect.box {
@@ -38,6 +45,10 @@ rect.box {
   fill: none;
   stroke-linecap: round;
   stroke-linejoin: round;
+}
+
+rect.selection-cursor {
+  fill: var(--light-yellow);
 }
 
 text.cell {
@@ -59,7 +70,13 @@ rect.text-bg {
 }
 
 g.highlight-red > rect.text-bg {
-  fill: palevioletred;
+  fill: var(--light-red);
+}
+g.highlight-blue > rect.text-bg {
+  fill: var(--light-blue);
+}
+g.highlight-green > rect.text-bg {
+  fill: svar(--light-green);
 }
 
 circle.dot-grid-marker {
