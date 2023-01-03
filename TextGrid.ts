@@ -344,12 +344,14 @@ export class TextGrid {
 
   export(): ExportedTextGrid {
     const cells = Array.from(this.cellMap).map((entry) => {
-      const [x, y] = entry[0].split(",").map((n) => Number.parseInt(n, 10));
+      const cell = entry[1];
+      // const [coords, cell] = entry;
+      // const [x, y] = entry[0].split(",").map((n) => Number.parseInt(n, 10));
       return {
-        x,
-        y,
-        text: entry[1].textElement.innerHTML,
-        classList: Array.from(entry[1].groupElement.classList).sort(),
+        x: cell.location.x,
+        y: cell.location.y,
+        text: cell.textElement.innerHTML,
+        classList: Array.from(cell.groupElement.classList).sort(),
       };
     });
 
@@ -364,49 +366,42 @@ export class TextGrid {
     }
 
     // Consolidate into spans
-    const spans: ExportedTextGrid = [];
+    const spans: ExportedTextSpan[] = [];
     Array.from(cellsByY).forEach(([y, entry]) => {
       const sortedCells = entry.sort((a, b) => a.x - b.x);
       if (!sortedCells.length) {
         return;
       }
-      let span = {
+      let span: ExportedTextSpan = {
         x: sortedCells[0].x,
         y,
-        text: sortedCells[0].text,
-        classList: sortedCells[0].classList,
+        t: sortedCells[0].text,
       };
+      if (sortedCells[0].classList.length) {
+        span.c = sortedCells[0].classList;
+      }
       spans.push(span);
 
       for (const cell of sortedCells.slice(1)) {
-        const distance = cell.x - span.x - span.text.length;
-        console.log("Distance", {
-          distance,
-          text: cell.text,
-          spanText: span.text,
-        });
+        const distance = cell.x - span.x - span.t.length;
         if (distance < 3) {
           // todo also check the class list
-          span.text += " ".repeat(distance) + cell.text;
+          span.t += " ".repeat(distance) + cell.text;
         } else {
           span = {
             x: cell.x,
             y,
-            text: cell.text,
-            classList: cell.classList,
+            t: cell.text,
           };
+          if (cell.classList.length) {
+            span.c = cell.classList;
+          }
           spans.push(span);
         }
       }
     });
 
-    return spans;
-
-    // TODO:
-    // Get only cells with text.
-    // Sort by coordinates
-    // Collect contiguous spans of text, splitting on X or more spaces between. (for e.gX=3 or a bit larger )
-    throw new Error("Not implemented");
+    return { version: 1, spans };
   }
 
   clear() {
@@ -414,28 +409,30 @@ export class TextGrid {
       cell.textElement.remove();
       cell.groupElement.remove();
     }
+    this.cellMap.clear();
   }
 
   importData(data: ExportedTextGrid) {
     // Origin is used if we are importing to a location, not to the origin.
     const origin = ORIGIN;
-    // TODO: clear everything or don't?
+    this.clear();
 
-    for (const entry of data) {
-      this.writeText(origin.x + entry.x, origin.y + entry.y, entry.text);
-
-      // TODO: set class list
+    for (const entry of data.spans) {
+      this.writeText(origin.x + entry.x, origin.y + entry.y, entry.t);
     }
   }
 }
 
-type ExportedTextGrid = ExportedTextSpan[];
+export type ExportedTextGrid = {
+  version: 1;
+  spans: ExportedTextSpan[];
+};
 
 type ExportedTextSpan = {
   x: number;
   y: number;
-  text: string;
-  classList: string[];
+  t: string;
+  c?: string[];
 };
 
 function getCellText(cell: GridCell): string {

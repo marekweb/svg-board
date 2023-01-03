@@ -1,11 +1,12 @@
 import { createSvgElement, setAttributes, setStyle } from "./createSvgElement";
 import { PenDefinition } from "./pen";
 import { add, mul, negative, ORIGIN, Point, transformPoint } from "./point";
-import { TextGrid } from "./TextGrid";
+import { ExportedTextGrid, TextGrid } from "./TextGrid";
 import { PenDrawer } from "./PenDrawer";
 import { ElementDrawer } from "./ElementDrawer";
 import { RectangleDrawer } from "./RectangleDrawer";
 import { pens } from "./pen";
+import { loadFile, saveFile } from "./load-file";
 
 window.addEventListener("load", () => {
   const elements = createBoardElements();
@@ -225,18 +226,16 @@ class Application {
           console.log("Hold panning");
           return;
 
+        case ",":
+          this.startImportFile();
+          return;
+
         case "x": {
           // "Export"
           const spans = this.textGrid.export();
           const f = JSON.stringify(spans);
-          console.log(f);
-          const blob = new Blob([f], { type: "applcation/json" });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement("a");
-          a.download = "spans.json";
-          a.href = url;
-          a.click();
-          return;
+          console.log("Data", f);
+          saveFile(f).catch((e) => console.error(e));
         }
       }
     }
@@ -656,6 +655,21 @@ class Application {
 
   resetPan() {
     this.setTranslate(ORIGIN);
+  }
+
+  async startImportFile() {
+    const result = await loadFile();
+    if (!result) {
+      return;
+    }
+    console.log({ result });
+    try {
+      const data = JSON.parse(result) as ExportedTextGrid;
+      this.textGrid.importData(data);
+    } catch (error) {
+      console.error(error);
+      alert("Failed to import file. See console for error message.");
+    }
   }
 
   createPathElement(penDefinition: PenDefinition): SVGPathElement {

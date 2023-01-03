@@ -52,7 +52,6 @@ rect.selection-cursor {
 }
 
 text.cell {
-  /* font-family: Overpass Mono; */
   font-family: Iosevka;
   font-size: 20px;
 }
