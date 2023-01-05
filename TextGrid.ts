@@ -276,9 +276,21 @@ export class TextGrid {
     this.applyCursor();
   }
 
-  writeCharacter(x: number, y: number, char: string) {
+  /**
+   * Writes a character to the grid at the given location, replacing the
+   * classList if provided.
+   *
+   * If the classList argument is omitted, the existing classList is kept. If
+   * the classList argument is an array, then the cell's classList is replaced
+   * or it is cleared if the argument is an empty array.
+   */
+  writeCharacter(x: number, y: number, char: string, classList?: string[]) {
     const cell = this.getOrCreateCell(x, y);
     cell.textElement.innerHTML = char;
+    if (classList) {
+      clearClassList(cell.groupElement);
+      cell.groupElement.classList.add(...classList);
+    }
   }
 
   clearCharacter(x: number, y: number) {
@@ -289,7 +301,12 @@ export class TextGrid {
     cell.textElement.innerHTML = "";
   }
 
-  writeText(x: number, y: number, text: string): { x: number; y: number } {
+  writeText(
+    x: number,
+    y: number,
+    text: string,
+    classList?: string[]
+  ): { x: number; y: number } {
     if (!text?.length) {
       return { x: 0, y: 0 };
     }
@@ -300,7 +317,7 @@ export class TextGrid {
         column = 0;
         y++;
       } else {
-        this.writeCharacter(x + column, y, c);
+        this.writeCharacter(x + column, y, c, classList);
         column++;
       }
     }
@@ -345,8 +362,6 @@ export class TextGrid {
   export(): ExportedTextGrid {
     const cells = Array.from(this.cellMap).map((entry) => {
       const cell = entry[1];
-      // const [coords, cell] = entry;
-      // const [x, y] = entry[0].split(",").map((n) => Number.parseInt(n, 10));
       return {
         x: cell.location.x,
         y: cell.location.y,
@@ -384,8 +399,8 @@ export class TextGrid {
 
       for (const cell of sortedCells.slice(1)) {
         const distance = cell.x - span.x - span.t.length;
-        if (distance < 3) {
-          // todo also check the class list
+        // If distance < 3 and the class list is the same, we append to the span
+        if (distance < 3 && arrayEquals(cell.classList, span.c ?? [])) {
           span.t += " ".repeat(distance) + cell.text;
         } else {
           span = {
@@ -418,7 +433,7 @@ export class TextGrid {
     this.clear();
 
     for (const entry of data.spans) {
-      this.writeText(origin.x + entry.x, origin.y + entry.y, entry.t);
+      this.writeText(origin.x + entry.x, origin.y + entry.y, entry.t, entry.c);
     }
   }
 }
@@ -449,4 +464,25 @@ function isCellEmpty(cell: GridCell | undefined): boolean {
   }
 
   return false;
+}
+
+// Compare already-sorted arrays
+function arrayEquals<T>(a: T[], b: T[]): boolean {
+  if (a.length !== b.length) {
+    return false;
+  }
+
+  for (let i = 0; i < a.length; i++) {
+    if (a[i] !== b[i]) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function clearClassList(element: Element) {
+  // Use classList simply because className is apparently deprecated although I
+  // suspect that setting className = "" is probably faster so this could be revisited.
+  element.classList.remove(...element.classList);
 }
