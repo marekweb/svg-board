@@ -1,4 +1,5 @@
 type ElementAttributeName<T extends Element> = keyof {
+  // eslint-disable-next-line @typescript-eslint/ban-types
   [K in keyof T as T[K] extends Function ? never : K]: string;
 };
 
