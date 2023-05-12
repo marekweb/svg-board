@@ -2,7 +2,7 @@
   --light-red: hsl(0, 100%, 90%);
   --light-blue: hsl(240, 100%, 90%);
   --light-green: hsl(120, 100%, 90%);
-  --light-yellow: hsl(60, 100%, 90%);
+  --light-yellow: hsl(60, 100%, 80%);
 }
 
 @font-face {
@@ -80,4 +80,29 @@ g.highlight-green > rect.text-bg {
 
 circle.dot-grid-marker {
   fill: hsl(0, 0%, 50%);
+}
+
+/* Style for the navbar element at the top of the page. */
+.navbar {
+  display: flex;
+  position: absolute;
+  align-items: center;
+  top: 0;
+  left: 0;
+  padding: 8px;
+  background-color: hsl(0, 0%, 90%);
+  width: 100vw;
+  box-sizing: border-box;
+}
+
+.action-button {
+  height: 30px;
+  padding: 4px;
+  margin: 0 8px;
+  border-radius: 100%;
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+.action-button:hover {
+  background-color: rgba(0, 0, 0, 0.2);
 }

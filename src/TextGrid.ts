@@ -44,7 +44,10 @@ export class TextGrid {
     this.applyCursor();
     this.parentSvgElemnent.appendChild(this.cursorRectElement);
 
-    const metrics = getCharacterMetrics(this.parentSvgElemnent, "Iosevka", 20);
+    getCharacterMetrics(this.parentSvgElemnent, "Iosevka", 20).then(
+      (metrics) => {
+        console.log("Metrics", metrics);
+      });
   }
 
   /** Return position of the cursor as a single position */
@@ -253,14 +256,14 @@ export class TextGrid {
     }
   }
 
-  addClassesOnSelection(className: typeof highlightClasses[number]) {
+  addClassesOnSelection(className: (typeof highlightClasses)[number]) {
     const cells = this.getCellsInSelection(true);
     for (const cell of cells) {
       cell.groupElement.classList.add(className);
     }
   }
 
-  setHighlightClassOnSelection(className: typeof highlightClasses[number]) {
+  setHighlightClassOnSelection(className: (typeof highlightClasses)[number]) {
     this.clearHighlightOnSelection();
     this.addClassesOnSelection(className);
   }

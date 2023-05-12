@@ -1,31 +1,34 @@
 {
   "name": "svg-board",
   "scripts": {
-    "start": "npm run parcel",
-    "parcel": "parcel index.html",
-    "build": "parcel build index.html",
+      "dev": "vite",
+      "build": "tsc && vite build",
+      "preview": "vite preview",
     "format": "prettier --write '**/*.{js,ts,html,css,md}' --list-different",
     "lint": "eslint . --ext .ts",
     "clean": "rm -rf dist/ .parcel-cache/",
     "tsc": "tsc",
     "test": "tap --ts rect.test.ts",
     "download-font": "mkdir -p fonts && curl -o 'fonts/iosevka-regular.woff2' https://cdnjs.cloudflare.com/ajax/libs/Iosevka/6.0.0/iosevka/woff2/iosevka-regular.woff2",
-    "postinstall": "npm run download-font"
+    "postinstall": "npm run download-font",
+    "copy-static": "mkdir out/ && cp -rv static/* out/",
+    "serve": "serve out/"
   },
   "devDependencies": {
-    "@types/tap": "^15.0.7",
-    "@typescript-eslint/eslint-plugin": "^5.47.1",
-    "@typescript-eslint/parser": "^5.47.1",
-    "eslint": "^8.30.0",
-    "jest": "^29.3.1",
-    "prettier": "^2.8.1",
-    "serve": "^14.1.2",
-    "tap": "^16.3.2",
+    "@types/tap": "^15.0.8",
+    "@typescript-eslint/eslint-plugin": "^5.59.5",
+    "@typescript-eslint/parser": "^5.59.5",
+    "eslint": "^8.40.0",
+    "jest": "^29.5.0",
+    "prettier": "^2.8.8",
+    "serve": "^14.2.0",
+    "tap": "^16.3.4",
     "ts-node": "^10.9.1",
-    "typescript": "^4.9.4"
+    "typescript": "^5.0.4",
+    "vite": "^4.3.5"
   },
   "dependencies": {
-    "parcel": "^2.8.2"
+    "parcel": "^2.8.3"
   },
   "eslintConfig": {
     "extends": [

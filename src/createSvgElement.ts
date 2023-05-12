@@ -43,7 +43,7 @@ export function setStyle(
   styleAttributes: Partial<CSSStyleDeclaration>
 ): void {
   for (const key in styleAttributes) {
-    // The '' fallback is to make TS happy. Could it be fixed differently?
+    // The "" fallback is to make TS happy. Could it be fixed differently?
     element.style[key] = styleAttributes[key] ?? "";
   }
 }

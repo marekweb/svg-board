@@ -20,6 +20,7 @@ type WindowWithFileSystemAPI = Window &
       options: ShowSaveFilePickerOptions
     ) => Promise<FileSystemFileHandle>;
   };
+
 interface ShowOpenFilePickerOptions {
   types: {
     description?: string;
@@ -29,6 +30,7 @@ interface ShowOpenFilePickerOptions {
   }[];
   multiple: boolean;
 }
+
 interface ShowSaveFilePickerOptions {
   suggestedName?: string;
   types: {

@@ -1,3 +1,4 @@
+import "./style.css";
 import { createSvgElement, setAttributes, setStyle } from "./createSvgElement";
 import { PenDefinition } from "./pen";
 import { add, mul, negative, ORIGIN, Point, transformPoint } from "./point";
@@ -10,7 +11,9 @@ import { loadFile, saveFile } from "./load-file";
 
 window.addEventListener("load", () => {
   const elements = createBoardElements();
-  new Application(elements);
+  const navbarElement = document.createElement("div");
+  navbarElement.classList.add("navbar");
+  new Application(elements, navbarElement);
 });
 
 interface BoardElements {
@@ -22,6 +25,7 @@ interface BoardElements {
   debugTextElement: SVGTextElement;
   gridElement: SVGGElement;
   debugCircleElement: SVGCircleElement;
+  commandsElement: SVGGElement;
 }
 
 type BufferedEvent =
@@ -36,7 +40,7 @@ type BufferedEvent =
     }
   | { type: "wheel-ctrl"; location: Point; delta: number };
 
-const ENABLE_GRID = true;
+const ENABLE_GRID = false;
 
 function createBoardElements(): BoardElements {
   const svgElement = createSvgElement("svg");
@@ -71,6 +75,21 @@ function createBoardElements(): BoardElements {
   // Debug circle is disabled by commenting out the next line.
   // svgElement.appendChild(debugCircleElement);
 
+  const commandsElement = createSvgElement("g");
+  const commandCircle = createSvgElement("circle", {
+    r: 20,
+    style: "fill: red",
+  });
+  commandCircle.setAttribute("transform", "translate(20, 20)");
+  commandsElement.appendChild(commandCircle);
+  const commandTextElement = createSvgElement("text", {
+    y: "12",
+    style: "font-size: 12px; font-family: monospace",
+  });
+  commandTextElement.innerHTML = "T";
+  commandsElement.appendChild(commandTextElement);
+  svgElement.appendChild(commandsElement);
+
   return {
     svgElement,
     contentGroupElement,
@@ -80,6 +99,7 @@ function createBoardElements(): BoardElements {
     debugTextElement,
     gridElement,
     debugCircleElement,
+    commandsElement,
   };
 }
 
@@ -108,22 +128,53 @@ class Application {
 
   private currentPathDrawer: ElementDrawer | undefined;
 
-  constructor(elements: BoardElements) {
+  private navbarElement: HTMLDivElement;
+
+  constructor(elements: BoardElements, navbarElement: HTMLDivElement) {
     this.elements = elements;
+    this.navbarElement = navbarElement;
+
     this.textGrid = new TextGrid(this.elements.textGroupElement);
-    window.importData = (data) => this.textGrid.importData(data);
     this.initialCursorX = 0;
 
     setStyle(this.elements.svgElement, {
       cursor: "crosshair",
     });
 
+    this.addActionButton("Import", "/import.svg", () => {
+      this.startImportFile();
+    });
+    this.addActionButton("Export", "/download.svg", () => {
+      this.startExportFile();
+    });
+    this.addActionButton("Pen", "/pen.svg", () => {
+      this.enterState("draw-ready");
+    });
+    this.addActionButton("Text", "/format-text.svg", () => {
+      this.enterState("text");
+    });
+
     document.body.appendChild(this.elements.svgElement);
+    document.body.appendChild(this.navbarElement);
 
     stretchToViewport(this.elements.svgElement);
     this.setupDotGrid();
     this.updateDebugState();
     this.attachEventListeners();
+  }
+
+  addActionButton(text: string, image: string, action: () => void) {
+    const button = document.createElement("div");
+    button.classList.add("action-button");
+    const img = document.createElement("img");
+    img.src = image;
+    img.width = 30;
+    img.height = 30;
+    button.appendChild(img);
+    button.addEventListener("click", () => {
+      action();
+    });
+    this.navbarElement.appendChild(button);
   }
 
   updateDebugText(text: string) {
@@ -231,11 +282,7 @@ class Application {
           return;
 
         case "x": {
-          // "Export"
-          const spans = this.textGrid.export();
-          const f = JSON.stringify(spans);
-          console.log("Data", f);
-          saveFile(f).catch((e) => console.error(e));
+          this.startExportFile();
         }
       }
     }
@@ -655,6 +702,12 @@ class Application {
 
   resetPan() {
     this.setTranslate(ORIGIN);
+  }
+
+  async startExportFile() {
+    const spans = this.textGrid.export();
+    const f = JSON.stringify(spans);
+    await saveFile(f);
   }
 
   async startImportFile() {
