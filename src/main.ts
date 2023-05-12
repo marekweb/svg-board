@@ -1,13 +1,13 @@
-import "./style.css";
-import { createSvgElement, setAttributes, setStyle } from "./createSvgElement";
-import { PenDefinition } from "./pen";
-import { add, mul, negative, ORIGIN, Point, transformPoint } from "./point";
-import { ExportedTextGrid, TextGrid } from "./TextGrid";
-import { PenDrawer } from "./PenDrawer";
 import { ElementDrawer } from "./ElementDrawer";
+import { PenDrawer } from "./PenDrawer";
 import { RectangleDrawer } from "./RectangleDrawer";
-import { pens } from "./pen";
+import { ExportedTextGrid, TextGrid } from "./TextGrid";
+import { createSvgElement, setAttributes, setStyle } from "./createSvgElement";
 import { loadFile, saveFile } from "./load-file";
+import { PenDefinition } from "./pen";
+import { pens } from "./pen";
+import { ORIGIN, Point, add, mul, negative, transformPoint } from "./point";
+import "./style.css";
 
 window.addEventListener("load", () => {
   const elements = createBoardElements();
@@ -410,7 +410,7 @@ class Application {
         this.textGrid.hideCursor();
       }
       this.enterState("none");
-    } else if (this.inputState === "text" && event.type == "keydown") {
+    } else if (this.inputState === "text" && event.type === "keydown") {
       if (event.key.length === 1 && !event.meta) {
         this.textGrid.writeCharacterAtCursor(event.key);
 
@@ -438,7 +438,7 @@ class Application {
         this.textGrid.moveCursorRelative(0, -1);
       } else if (event.key === "ArrowDown") {
         this.textGrid.moveCursorRelative(0, 1);
-      } else if (event.key == "Backspace") {
+      } else if (event.key === "Backspace") {
         this.textGrid.moveCursorRelative(-1);
         const cursor = this.textGrid.getCursor();
         this.textGrid.clearCharacter(cursor.x, cursor.y);
@@ -452,7 +452,7 @@ class Application {
         // Now we need to prevenet default but it's too late...
         const columnFromInitialCursor =
           this.textGrid.getCursor().x - this.initialCursorX;
-        if (columnFromInitialCursor % 2 == 0) {
+        if (columnFromInitialCursor % 2 === 0) {
           this.textGrid.moveCursorRelative(2);
         } else {
           this.textGrid.moveCursorRelative(1);
@@ -505,7 +505,7 @@ class Application {
       }
 
       // Special handling of certain keys that need stop propagation
-      if (event.key == "Tab") {
+      if (event.key === "Tab") {
         event.preventDefault();
       }
 

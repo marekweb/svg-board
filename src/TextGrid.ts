@@ -1,5 +1,5 @@
 import { createSvgElement } from "./createSvgElement";
-import { add, ORIGIN, Point } from "./point";
+import { ORIGIN, Point, add } from "./point";
 import { convertPointsToRect } from "./rect";
 import { getCharacterMetrics } from "./text-metrics";
 
@@ -47,7 +47,8 @@ export class TextGrid {
     getCharacterMetrics(this.parentSvgElemnent, "Iosevka", 20).then(
       (metrics) => {
         console.log("Metrics", metrics);
-      });
+      }
+    );
   }
 
   /** Return position of the cursor as a single position */
@@ -240,8 +241,7 @@ export class TextGrid {
 
   toggleCellClassAtSelection(className: string) {
     const firstCell = this.getCell(this.cursorStart.x, this.cursorStart.y);
-    const value =
-      firstCell && firstCell.groupElement.classList.contains(className);
+    const value = firstCell?.groupElement.classList.contains(className);
     const cells = this.getCellsInSelection();
     // TODO: decide what to do when the cell is actually empty.
     for (const cell of cells) {
@@ -256,14 +256,14 @@ export class TextGrid {
     }
   }
 
-  addClassesOnSelection(className: (typeof highlightClasses)[number]) {
+  addClassesOnSelection(className: typeof highlightClasses[number]) {
     const cells = this.getCellsInSelection(true);
     for (const cell of cells) {
       cell.groupElement.classList.add(className);
     }
   }
 
-  setHighlightClassOnSelection(className: (typeof highlightClasses)[number]) {
+  setHighlightClassOnSelection(className: typeof highlightClasses[number]) {
     this.clearHighlightOnSelection();
     this.addClassesOnSelection(className);
   }

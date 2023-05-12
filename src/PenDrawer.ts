@@ -1,8 +1,8 @@
-import { createSvgElement } from "./createSvgElement";
 import { ElementDrawer } from "./ElementDrawer";
+import { createSvgElement } from "./createSvgElement";
 import {
-  generateQuadraticMidpointSmoothedPathString,
   generateLinearPathString,
+  generateQuadraticMidpointSmoothedPathString,
 } from "./paths";
 import { Point } from "./point";
 

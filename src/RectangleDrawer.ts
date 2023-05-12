@@ -1,5 +1,5 @@
-import { createSvgElement } from "./createSvgElement";
 import { ElementDrawer } from "./ElementDrawer";
+import { createSvgElement } from "./createSvgElement";
 import { ORIGIN, Point } from "./point";
 import { convertPointsToRect } from "./rect";
 
