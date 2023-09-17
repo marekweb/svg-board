@@ -9,6 +9,8 @@ import { pens } from "./pen";
 import { ORIGIN, Point, add, mul, negative, transformPoint } from "./point";
 import "./style.css";
 
+const ENABLE_POINTER_LOCK = false;
+
 window.addEventListener("load", () => {
   const elements = createBoardElements();
   const navbarElement = document.createElement("div");
@@ -167,6 +169,7 @@ class Application {
     const button = document.createElement("div");
     button.classList.add("action-button");
     const img = document.createElement("img");
+    img.title = text;
     img.src = image;
     img.width = 30;
     img.height = 30;
@@ -273,7 +276,9 @@ class Application {
 
         case " ":
           this.enterState("hold-panning");
-          this.elements.svgElement.requestPointerLock();
+          if (ENABLE_POINTER_LOCK) {
+           this.elements.svgElement.requestPointerLock();
+          }
           console.log("Hold panning");
           return;
 
@@ -310,7 +315,9 @@ class Application {
 
       if (event.type === "keyup" && event.key === " ") {
         console.log("Got a key space up");
-        document.exitPointerLock();
+        if (ENABLE_POINTER_LOCK) {
+          document.exitPointerLock();
+        }
         this.enterState("none");
         return;
       }
@@ -762,11 +769,11 @@ function generateTransformStringWithUnits(scale: number, translate: Point) {
   return `translate(${translate.x}px,${translate.y}px) scale(${scale})`;
 }
 
-function generateTransformStringWithUnitsForGrid(
-  scale: number,
-  translate: Point
-) {
-  const x = translate.x % 10;
-  const y = translate.y % 20;
-  return `translate(${x}px,${y}px) scale(${scale})`;
-}
+// function generateTransformStringWithUnitsForGrid(
+//   scale: number,
+//   translate: Point
+// ) {
+//   const x = translate.x % 10;
+//   const y = translate.y % 20;
+//   return `translate(${x}px,${y}px) scale(${scale})`;
+// }

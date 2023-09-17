@@ -54,6 +54,7 @@ rect.selection-cursor {
 text.cell {
   font-family: Iosevka;
   font-size: 20px;
+  text-anchor: middle;
 }
 
 g.bold > text {

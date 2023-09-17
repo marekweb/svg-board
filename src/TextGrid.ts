@@ -152,7 +152,6 @@ export class TextGrid {
       {
         x: String(x * cellWidth + cellWidth / 2),
         y: String((y + 1) * cellHeight - baselineFromBottom),
-        "text-anchor": "middle",
       },
       "cell"
     );

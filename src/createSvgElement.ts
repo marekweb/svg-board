@@ -29,11 +29,11 @@ export function createSvgElement<T extends keyof SVGElementTagNameMap>(
 
 export function setAttributes<T extends SVGElement>(
   element: T,
-  attributes?: ElementAttributes<T> //Record<string, string>
+  attributes?: ElementAttributes<T>
 ): void {
   if (attributes) {
     for (const key in attributes) {
-      element.setAttribute(key, attributes[key]);
+      element.setAttribute(key, String(attributes[key]));
     }
   }
 }
