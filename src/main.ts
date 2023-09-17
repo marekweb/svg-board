@@ -9,8 +9,6 @@ import { pens } from "./pen";
 import { ORIGIN, Point, add, mul, negative, transformPoint } from "./point";
 import "./style.css";
 
-const ENABLE_POINTER_LOCK = false;
-
 window.addEventListener("load", () => {
   const elements = createBoardElements();
   const navbarElement = document.createElement("div");
@@ -27,7 +25,6 @@ interface BoardElements {
   debugTextElement: SVGTextElement;
   gridElement: SVGGElement;
   debugCircleElement: SVGCircleElement;
-  commandsElement: SVGGElement;
 }
 
 type BufferedEvent =
@@ -42,7 +39,11 @@ type BufferedEvent =
     }
   | { type: "wheel-ctrl"; location: Point; delta: number };
 
-const ENABLE_GRID = false;
+// Settings flags
+const ENABLE_GRID = true;
+const ENABLE_POINTER_LOCK = false;
+const ENABLE_DEBUG_CIRCLE = false;
+// End of settings flags
 
 function createBoardElements(): BoardElements {
   const svgElement = createSvgElement("svg");
@@ -74,23 +75,9 @@ function createBoardElements(): BoardElements {
     r: 5,
     style: "fill: red",
   });
-  // Debug circle is disabled by commenting out the next line.
-  // svgElement.appendChild(debugCircleElement);
-
-  const commandsElement = createSvgElement("g");
-  const commandCircle = createSvgElement("circle", {
-    r: 20,
-    style: "fill: red",
-  });
-  commandCircle.setAttribute("transform", "translate(20, 20)");
-  commandsElement.appendChild(commandCircle);
-  const commandTextElement = createSvgElement("text", {
-    y: "12",
-    style: "font-size: 12px; font-family: monospace",
-  });
-  commandTextElement.innerHTML = "T";
-  commandsElement.appendChild(commandTextElement);
-  svgElement.appendChild(commandsElement);
+  if (ENABLE_DEBUG_CIRCLE) {
+    svgElement.appendChild(debugCircleElement);
+  }
 
   return {
     svgElement,
@@ -101,7 +88,6 @@ function createBoardElements(): BoardElements {
     debugTextElement,
     gridElement,
     debugCircleElement,
-    commandsElement,
   };
 }
 
@@ -119,6 +105,7 @@ class Application {
     | "hold-panning"
     | "text"
     | "text-selecting" = "none";
+  private previousInputState: typeof this.inputState = "none";
   private textGrid: TextGrid;
 
   private eventBuffer: BufferedEvent[] = [];
@@ -143,17 +130,19 @@ class Application {
       cursor: "crosshair",
     });
 
-    this.addActionButton("Import", "/import.svg", () => {
+    this.addActionButton("Import", "import", "/import.svg", () => {
       this.startImportFile();
     });
-    this.addActionButton("Export", "/download.svg", () => {
+    this.addActionButton("Export", "export", "/download.svg", () => {
       this.startExportFile();
     });
-    this.addActionButton("Pen", "/pen.svg", () => {
+    this.addActionButton("Pen", "pen-tool", "/pen.svg", () => {
       this.enterState("draw-ready");
+      this.activateActionButton("pen-tool");
     });
-    this.addActionButton("Text", "/format-text.svg", () => {
+    this.addActionButton("Text", "text-tool", "/format-text.svg", () => {
       this.enterState("text");
+      this.activateActionButton("text-tool");
     });
 
     document.body.appendChild(this.elements.svgElement);
@@ -165,9 +154,15 @@ class Application {
     this.attachEventListeners();
   }
 
-  addActionButton(text: string, image: string, action: () => void) {
+  addActionButton(
+    text: string,
+    identifier: string,
+    image: string,
+    action: (element: HTMLDivElement, identifier: string) => void
+  ) {
     const button = document.createElement("div");
     button.classList.add("action-button");
+    button.setAttribute("data-identifier", identifier);
     const img = document.createElement("img");
     img.title = text;
     img.src = image;
@@ -175,9 +170,20 @@ class Application {
     img.height = 30;
     button.appendChild(img);
     button.addEventListener("click", () => {
-      action();
+      action(button, identifier);
     });
     this.navbarElement.appendChild(button);
+  }
+
+  activateActionButton(identifier: string) {
+    this.navbarElement.querySelectorAll(".action-button").forEach((el) => {
+      el.classList.remove("selected");
+    });
+    this.navbarElement
+      .querySelectorAll(`.action-button[data-identifier="${identifier}"]`)
+      .forEach((el) => {
+        el.classList.add("selected");
+      });
   }
 
   updateDebugText(text: string) {
@@ -198,9 +204,19 @@ class Application {
   }
 
   enterState(state: typeof this.inputState) {
-    const oldState = this.inputState;
+    this.previousInputState = this.inputState;
     this.inputState = state;
-    console.log(`!!!State: ${oldState} -> ${state}`);
+    console.log(`!!!State: ${this.previousInputState} -> ${this.inputState}`);
+    this.updateDebugState();
+  }
+
+  /**
+   * Revert to the previous state that was entered using enterState().
+   */
+  revertState() {
+    this.inputState = this.previousInputState;
+    this.previousInputState = "none";
+    console.log(`!!!State: ${this.previousInputState} -> ${this.inputState}`);
     this.updateDebugState();
   }
 
@@ -277,7 +293,7 @@ class Application {
         case " ":
           this.enterState("hold-panning");
           if (ENABLE_POINTER_LOCK) {
-           this.elements.svgElement.requestPointerLock();
+            this.elements.svgElement.requestPointerLock();
           }
           console.log("Hold panning");
           return;
@@ -318,7 +334,7 @@ class Application {
         if (ENABLE_POINTER_LOCK) {
           document.exitPointerLock();
         }
-        this.enterState("none");
+        this.revertState();
         return;
       }
 

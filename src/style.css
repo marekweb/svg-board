@@ -107,3 +107,7 @@ circle.dot-grid-marker {
 .action-button:hover {
   background-color: rgba(0, 0, 0, 0.2);
 }
+
+.action-button.selected {
+  background-color: rgba(0, 0, 0, 0.3);
+}
