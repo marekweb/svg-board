@@ -51,11 +51,11 @@ function createBoardElements(): BoardElements {
   const contentGroupElement = createSvgElement("g", { id: "content-group" });
   svgElement.appendChild(contentGroupElement);
 
-  const upperGroupElement = createSvgElement("g", { id: "upper-layer" });
-  contentGroupElement.appendChild(upperGroupElement);
-
   const lowerGroupElement = createSvgElement("g", { id: "lower-layer" });
   contentGroupElement.appendChild(lowerGroupElement);
+
+  const upperGroupElement = createSvgElement("g", { id: "upper-layer" });
+  contentGroupElement.appendChild(upperGroupElement);
 
   const textGroupElement = createSvgElement("g", { id: "text-layer" });
   contentGroupElement.appendChild(textGroupElement);
