@@ -145,6 +145,19 @@ class Application {
       this.activateActionButton("text-tool");
     });
 
+    this.addActionButton("Pen 1", "pen-1", "/pen.svg", () => {
+      this.penIndex = 0;
+    });
+    this.addActionButton("Pen 2", "pen-2", "/pen.svg", () => {
+      this.penIndex = 1;
+    });
+    this.addActionButton("Pen 3", "pen-3", "/pen.svg", () => {
+      this.penIndex = 2;
+    });
+    this.addActionButton("Pen 4", "pen-4", "/pen.svg", () => {
+      this.penIndex = 3;
+    });
+
     document.body.appendChild(this.elements.svgElement);
     document.body.appendChild(this.navbarElement);
 
